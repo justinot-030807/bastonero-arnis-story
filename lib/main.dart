@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'domain/systems/data_loader.dart';
 import 'providers/game_state_provider.dart';
@@ -7,6 +8,10 @@ import 'ui/widgets/pixel_viewport.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
   await DataLoader.loadAllData();
   runApp(const BastoneroApp());
 }
