@@ -29,162 +29,220 @@ class _MatchHudOverlayState extends State<MatchHudOverlay> {
         return SafeArea(
           child: Column(
             children: [
-              // TOP COMBAT HUD: PIXEL PORTRAITS, STYLE BADGES, SEGMENTED PIXEL BARS, DIGITAL TIMER
+              // TOP COMBAT HUD (IMAGE 4 KAIROSOFT BOXING GYM STORY EMULATION)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: const BoxDecoration(
                   color: Color(0xFF1E293B),
                   border: Border(
                     bottom: BorderSide(color: Color(0xFF1A1C2C), width: 3),
                   ),
                 ),
-                child: Row(
+                child: Column(
                   children: [
-                    // PLAYER CORNER (RED)
-                    const PixelSpriteWidget(
-                      matrix: PixelArtCatalog.bayaniPortrait,
-                      pixelSize: 2.2,
+                    // CORNER GYM TAGS (IMAGE 4)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Red Corner: Bakuran Arnis Camp',
+                          style: TextStyle(color: Color(0xFFF87171), fontSize: 8, fontFamily: 'monospace', fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          'Blue Corner: ${o.fighter.name.split(' ').first} Club',
+                          style: const TextStyle(color: Color(0xFF60A5FA), fontSize: 8, fontFamily: 'monospace', fontWeight: FontWeight.bold),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
+                    const SizedBox(height: 3),
+
+                    Row(
+                      children: [
+                        // PLAYER CORNER (RED)
+                        const PixelSpriteWidget(
+                          matrix: PixelArtCatalog.bayaniPortrait,
+                          pixelSize: 2.2,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              Row(
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      p.fighter.name,
+                                      style: const TextStyle(
+                                        color: Color(0xFFF4ECE1),
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        fontFamily: 'monospace',
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                    color: const Color(0xFFDC2626),
+                                    child: Text(
+                                      p.fighter.style.displayName.split(' ').first,
+                                      style: const TextStyle(color: Colors.white, fontSize: 7, fontFamily: 'monospace'),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 3),
+                              // Segmented HP Bar
+                              PixelBar(
+                                current: p.currentHp,
+                                max: p.fighter.maxHp,
+                                fillColor: const Color(0xFFDC2626),
+                                totalSegments: 12,
+                                height: 10,
+                              ),
+                              const SizedBox(height: 2),
+                              Row(
+                                children: [
+                                  Text(
+                                    'HP: ${p.currentHp.toInt()} / ${p.fighter.maxHp.toInt()}',
+                                    style: const TextStyle(color: Color(0xFF8B9BB4), fontSize: 9, fontFamily: 'monospace'),
+                                  ),
+                                  if (p.hasBiraAura) ...[
+                                    const SizedBox(width: 4),
+                                    const Text('+30% LAKAS', style: TextStyle(color: Color(0xFFF87171), fontSize: 7, fontWeight: FontWeight.bold, fontFamily: 'monospace')),
+                                  ],
+                                  if (p.hasSalagAura) ...[
+                                    const SizedBox(width: 4),
+                                    const Text('+50% SALAG', style: TextStyle(color: Color(0xFF38BDF8), fontSize: 7, fontWeight: FontWeight.bold, fontFamily: 'monospace')),
+                                  ],
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        // CENTRAL DIGITAL PIXEL ROUND TIMER (IMAGE 4)
+                        Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF0F172A),
+                            border: Border.all(color: const Color(0xFFF4B41B), width: 2),
+                          ),
+                          child: Column(
+                            children: [
+                              const Text(
+                                'ROUND 1',
+                                style: TextStyle(color: Color(0xFFF4B41B), fontSize: 7, fontFamily: 'monospace', fontWeight: FontWeight.bold),
+                              ),
                               Text(
-                                p.fighter.name,
+                                widget.game.matchTimer.toInt().toString().padLeft(2, '0'),
                                 style: const TextStyle(
-                                  color: Color(0xFFF4ECE1),
-                                  fontSize: 11,
+                                  color: Color(0xFFFDE047),
+                                  fontSize: 18,
                                   fontWeight: FontWeight.bold,
                                   fontFamily: 'monospace',
                                 ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(width: 4),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                                color: const Color(0xFFDC2626),
-                                child: Text(
-                                  p.fighter.style.displayName.split(' ').first,
-                                  style: const TextStyle(color: Colors.white, fontSize: 8, fontFamily: 'monospace'),
-                                ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 3),
-                          // Segmented HP Bar
-                          PixelBar(
-                            current: p.currentHp,
-                            max: p.fighter.maxHp,
-                            fillColor: const Color(0xFFDC2626),
-                            totalSegments: 12,
-                            height: 10,
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'HP: ${p.currentHp.toInt()} / ${p.fighter.maxHp.toInt()}',
-                            style: const TextStyle(color: Color(0xFF8B9BB4), fontSize: 9, fontFamily: 'monospace'),
-                          ),
-                        ],
-                      ),
-                    ),
+                        ),
 
-                    // CENTRAL DIGITAL PIXEL ROUND TIMER
-                    Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 8),
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF0F172A),
-                        border: Border.all(color: const Color(0xFFF4B41B), width: 2),
-                      ),
-                      child: Column(
-                        children: [
-                          const Text(
-                            'ORAS',
-                            style: TextStyle(color: Color(0xFFF4B41B), fontSize: 8, fontFamily: 'monospace', fontWeight: FontWeight.bold),
-                          ),
-                          Text(
-                            widget.game.matchTimer.toInt().toString().padLeft(2, '0'),
-                            style: const TextStyle(
-                              color: Color(0xFFFDE047),
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              fontFamily: 'monospace',
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    // OPPONENT CORNER (BLUE)
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
+                        // OPPONENT CORNER (BLUE)
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                                color: const Color(0xFF2563EB),
-                                child: Text(
-                                  o.fighter.style.displayName.split(' ').first,
-                                  style: const TextStyle(color: Colors.white, fontSize: 8, fontFamily: 'monospace'),
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              Flexible(
-                                child: Text(
-                                  o.fighter.name,
-                                  style: const TextStyle(
-                                    color: Color(0xFFF4ECE1),
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                    fontFamily: 'monospace',
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                    color: const Color(0xFF2563EB),
+                                    child: Text(
+                                      o.fighter.style.displayName.split(' ').first,
+                                      style: const TextStyle(color: Colors.white, fontSize: 7, fontFamily: 'monospace'),
+                                    ),
                                   ),
-                                  overflow: TextOverflow.ellipsis,
-                                  textAlign: TextAlign.end,
-                                ),
+                                  const SizedBox(width: 4),
+                                  Flexible(
+                                    child: Text(
+                                      o.fighter.name,
+                                      style: const TextStyle(
+                                        color: Color(0xFFF4ECE1),
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        fontFamily: 'monospace',
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                      textAlign: TextAlign.end,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 3),
+                              // Segmented HP Bar
+                              PixelBar(
+                                current: o.currentHp,
+                                max: o.fighter.maxHp,
+                                fillColor: const Color(0xFF38BDF8),
+                                totalSegments: 12,
+                                height: 10,
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'HP: ${o.currentHp.toInt()} / ${o.fighter.maxHp.toInt()}',
+                                style: const TextStyle(color: Color(0xFF8B9BB4), fontSize: 9, fontFamily: 'monospace'),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 3),
-                          // Segmented HP Bar
-                          PixelBar(
-                            current: o.currentHp,
-                            max: o.fighter.maxHp,
-                            fillColor: const Color(0xFF38BDF8),
-                            totalSegments: 12,
-                            height: 10,
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'HP: ${o.currentHp.toInt()} / ${o.fighter.maxHp.toInt()}',
-                            style: const TextStyle(color: Color(0xFF8B9BB4), fontSize: 9, fontFamily: 'monospace'),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    PixelSpriteWidget(
-                      matrix: opponentPortrait,
-                      pixelSize: 2.2,
+                        ),
+                        const SizedBox(width: 8),
+                        PixelSpriteWidget(
+                          matrix: opponentPortrait,
+                          pixelSize: 2.2,
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
 
+              // FLOATING COMBO BADGE (IMAGE 4)
+              if (widget.game.playerComboCount >= 2)
+                Container(
+                  margin: const EdgeInsets.only(top: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFDC2626),
+                    border: Border.all(color: const Color(0xFFFEF08A), width: 2),
+                    boxShadow: const [
+                      BoxShadow(color: Colors.black, offset: Offset(2, 2)),
+                    ],
+                  ),
+                  child: Text(
+                    '${widget.game.playerComboCount}-HIT COMBO!',
+                    style: const TextStyle(
+                      color: Color(0xFFFEF08A),
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'monospace',
+                      letterSpacing: 1.0,
+                    ),
+                  ),
+                ),
+
               const Spacer(),
 
-              // BOTTOM COMBAT PANEL: LIVE ANNOUNCER SCROLLER + STAT BREAKDOWN + GIGIL + COMMANDS
+              // BOTTOM COMBAT PANEL: LIVE ANNOUNCER SCROLLER + 4-STAT CARDS + GIGIL + COMMANDS
               Container(
                 color: const Color(0xFF1E293B).withValues(alpha: 0.95),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 child: Column(
                   children: [
-                    // LIVE ANNOUNCER SCROLLING LOG BOX
+                    // LIVE ANNOUNCER SCROLLING LOG BOX (IMAGE 4 ANNOUNCER TICKER)
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -194,11 +252,11 @@ class _MatchHudOverlayState extends State<MatchHudOverlay> {
                       ),
                       child: Text(
                         widget.game.announcerLogs.isNotEmpty
-                            ? '[KORTE] ${widget.game.announcerLogs.last}'
-                            : '[KORTE] Handa na ang labanan!',
+                            ? 'Announcer: ${widget.game.announcerLogs.last}'
+                            : 'Announcer: Handa na ang labanan!',
                         style: const TextStyle(
                           color: Color(0xFFFDE047),
-                          fontSize: 10,
+                          fontSize: 9.5,
                           fontWeight: FontWeight.bold,
                           fontFamily: 'monospace',
                         ),
@@ -206,51 +264,51 @@ class _MatchHudOverlayState extends State<MatchHudOverlay> {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 5),
 
-                    // 4-STAT COMPARISON BREAKDOWN
+                    // 4-STAT COMPARISON BREAKDOWN WITH MINI PIXEL ICONS (IMAGE 4 BOTTOM STATS)
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                        _buildStatComparison('LAKAS', p.combatPower.toInt(), o.combatPower.toInt(), const Color(0xFFDC2626)),
-                        _buildStatComparison('BILIS', p.combatSpeed.toInt(), o.combatSpeed.toInt(), const Color(0xFF38BDF8)),
-                        _buildStatComparison('DISKARTE', p.combatTechnique.toInt(), o.combatTechnique.toInt(), const Color(0xFFF4B41B)),
-                        _buildStatComparison('SALAG', p.combatDefense.toInt(), o.combatDefense.toInt(), const Color(0xFF4ADE80)),
+                        _buildStatBox(PixelArtCatalog.miniMuscle, 'LAKAS', p.combatPower.toInt(), o.combatPower.toInt(), const Color(0xFFDC2626)),
+                        _buildStatBox(PixelArtCatalog.miniShoe, 'BILIS', p.combatSpeed.toInt(), o.combatSpeed.toInt(), const Color(0xFF38BDF8)),
+                        _buildStatBox(PixelArtCatalog.miniBastonIcon, 'DISKARTE', p.combatTechnique.toInt(), o.combatTechnique.toInt(), const Color(0xFFF4B41B)),
+                        _buildStatBox(PixelArtCatalog.miniTrunks, 'SALAG', p.combatDefense.toInt(), o.combatDefense.toInt(), const Color(0xFF4ADE80)),
                       ],
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 5),
 
                     // COACH GIGIL METER
                     Row(
                       children: [
                         const Text(
                           'COACH GIGIL: ',
-                          style: TextStyle(color: Color(0xFFF4B41B), fontSize: 10, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+                          style: TextStyle(color: Color(0xFFF4B41B), fontSize: 9, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
                         ),
                         Expanded(
                           child: PixelBar(
                             current: widget.game.coachGigilMeter,
                             max: 100.0,
                             fillColor: const Color(0xFFE6482E),
-                            totalSegments: 15,
-                            height: 10,
+                            totalSegments: 14,
+                            height: 9,
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 6),
                         Text(
                           '${widget.game.coachGigilMeter.toInt()}%',
-                          style: const TextStyle(color: Color(0xFFFDE047), fontSize: 10, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+                          style: const TextStyle(color: Color(0xFFFDE047), fontSize: 9, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
 
                     // 3 TACTILE ACTION BUTTONS (ZERO EMOJIS!)
                     Row(
                       children: [
                         Expanded(
                           child: RetroButton(
-                            height: 38,
+                            height: 36,
                             color: const Color(0xFFE6482E),
                             onTap: widget.game.coachGigilMeter >= 35.0 && !widget.game.isMatchOver
                                 ? () => setState(() => widget.game.shoutBira())
@@ -258,7 +316,7 @@ class _MatchHudOverlayState extends State<MatchHudOverlay> {
                             child: const Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Text('BIRA!', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold, fontFamily: 'monospace')),
+                                Text('BIRA!', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold, fontFamily: 'monospace')),
                                 Text('+30% Lakas (35%)', style: TextStyle(color: Color(0xFFFDE047), fontSize: 7, fontFamily: 'monospace')),
                               ],
                             ),
@@ -267,7 +325,7 @@ class _MatchHudOverlayState extends State<MatchHudOverlay> {
                         const SizedBox(width: 6),
                         Expanded(
                           child: RetroButton(
-                            height: 38,
+                            height: 36,
                             color: const Color(0xFF0284C7),
                             onTap: widget.game.coachGigilMeter >= 30.0 && !widget.game.isMatchOver
                                 ? () => setState(() => widget.game.shoutSalag())
@@ -275,7 +333,7 @@ class _MatchHudOverlayState extends State<MatchHudOverlay> {
                             child: const Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Text('SALAG!', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold, fontFamily: 'monospace')),
+                                Text('SALAG!', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold, fontFamily: 'monospace')),
                                 Text('+50% Salag (30%)', style: TextStyle(color: Color(0xFFFDE047), fontSize: 7, fontFamily: 'monospace')),
                               ],
                             ),
@@ -284,7 +342,7 @@ class _MatchHudOverlayState extends State<MatchHudOverlay> {
                         const SizedBox(width: 6),
                         Expanded(
                           child: RetroButton(
-                            height: 38,
+                            height: 36,
                             color: const Color(0xFFF4B41B),
                             onTap: widget.game.coachGigilMeter >= 45.0 && !widget.game.isMatchOver
                                 ? () => setState(() => widget.game.shoutDiskarte())
@@ -292,7 +350,7 @@ class _MatchHudOverlayState extends State<MatchHudOverlay> {
                             child: const Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Text('DISKARTE!', style: TextStyle(color: Color(0xFF1A1C2C), fontSize: 11, fontWeight: FontWeight.bold, fontFamily: 'monospace')),
+                                Text('DISKARTE!', style: TextStyle(color: Color(0xFF1A1C2C), fontSize: 10, fontWeight: FontWeight.bold, fontFamily: 'monospace')),
                                 Text('Sabong Lock (45%)', style: TextStyle(color: Color(0xFF1A1C2C), fontSize: 7, fontFamily: 'monospace', fontWeight: FontWeight.bold)),
                               ],
                             ),
@@ -310,21 +368,28 @@ class _MatchHudOverlayState extends State<MatchHudOverlay> {
     );
   }
 
-  Widget _buildStatComparison(String stat, int playerVal, int oppVal, Color color) {
+  Widget _buildStatBox(List<String> iconMatrix, String label, int playerVal, int oppVal, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
       decoration: BoxDecoration(
         color: const Color(0xFF0F172A),
         border: Border.all(color: color.withValues(alpha: 0.5)),
       ),
-      child: Text(
-        '$stat $playerVal vs $oppVal',
-        style: TextStyle(
-          color: color,
-          fontSize: 8,
-          fontWeight: FontWeight.bold,
-          fontFamily: 'monospace',
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          PixelSpriteWidget(matrix: iconMatrix, pixelSize: 1.1),
+          const SizedBox(width: 4),
+          Text(
+            '$playerVal vs $oppVal',
+            style: TextStyle(
+              color: color,
+              fontSize: 8,
+              fontWeight: FontWeight.bold,
+              fontFamily: 'monospace',
+            ),
+          ),
+        ],
       ),
     );
   }

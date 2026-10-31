@@ -98,5 +98,68 @@ void main() {
       // Street track remains open regardless of grade
       expect(streetTourney.isEligible(state.fighter, 1), isTrue);
     });
+
+    test('Tournament Bracketing: Single-elimination bracket advances from Semis to Finals', () {
+      final tourney = state.tournaments.firstWhere((t) => t.id == 'purok_bakbakan');
+      final bracket = tourney.bracket;
+      expect(bracket, isNotNull);
+      expect(bracket!.matches.length, 3); // Semis A, Semis B, Championship Final
+
+      final activeMatch = bracket.activePlayerMatch;
+      expect(activeMatch, isNotNull);
+      expect(activeMatch!.stageName, 'Semi-Finals A');
+
+      // Win Semifinal A
+      final opp1 = activeMatch.fighter2Data!;
+      state.handleBracketMatchResult(
+        tournament: tourney,
+        currentOpponent: opp1,
+        won: true,
+        maxDamage: 35,
+      );
+
+      // Verify Semifinals B was simulated and Championship Final is now populated with Bayani
+      expect(bracket.matches[0].isCompleted, isTrue);
+      expect(bracket.matches[0].winnerName, state.fighter.name);
+      expect(bracket.matches[1].isCompleted, isTrue); // AI vs AI completed
+      expect(bracket.matches[2].fighter1Name, state.fighter.name);
+      expect(bracket.matches[2].fighter2Name, isNotEmpty);
+      expect(bracket.currentRoundIndex, 1);
+
+      // Win Championship Final
+      final finalsOpponent = bracket.matches[2].fighter2Data!;
+      state.handleBracketMatchResult(
+        tournament: tourney,
+        currentOpponent: finalsOpponent,
+        won: true,
+        maxDamage: 45,
+      );
+
+      expect(bracket.isFinished, isTrue);
+      expect(tourney.isCompleted, isTrue);
+    });
+
+    test('Opponent Head-to-Head Dossier: Tracks matches, wins, losses, peak damage, and dates', () {
+      final tourney = state.tournaments.firstWhere((t) => t.id == 'purok_bakbakan');
+      final opponent = tourney.rounds.first;
+
+      final initialRecord = state.opponentRecords[opponent.name];
+      final initialMatches = initialRecord?.matchesFought ?? 0;
+      final initialWins = initialRecord?.wins ?? 0;
+
+      // Simulate a victory
+      state.recordOpponentMatch(
+        opponent: opponent,
+        won: true,
+        maxDamage: 38,
+      );
+
+      final updatedRecord = state.opponentRecords[opponent.name]!;
+      expect(updatedRecord.matchesFought, initialMatches + 1);
+      expect(updatedRecord.wins, initialWins + 1);
+      expect(updatedRecord.highestDamageDealt, greaterThanOrEqualTo(38));
+      expect(updatedRecord.lastResult, 'PANALO');
+      expect(updatedRecord.lastEncounter, contains('Yr 1'));
+    });
   });
 }

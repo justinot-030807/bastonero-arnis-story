@@ -5,6 +5,7 @@ import '../models/facility_model.dart';
 import '../models/tournament_model.dart';
 import '../models/story_event_model.dart';
 import '../models/inventory_model.dart';
+import '../models/opponent_record_model.dart';
 import '../utils/storage_service.dart';
 
 enum ActionType {
@@ -50,6 +51,9 @@ class GameStateProvider extends ChangeNotifier {
   List<TournamentModel> tournaments = [];
   List<StoryEvent> storyEvents = [];
   StoryEvent? activeDialogueEvent;
+
+  // Opponent Head-to-Head Dossier Records
+  Map<String, OpponentRecord> opponentRecords = {};
 
   // Recent Action Log for Kairosoft-style ticker notifications (Zero Emojis!)
   String recentLog = 'Maligayang pagdating sa Bastonero: Arnis Story!';
@@ -122,6 +126,62 @@ class GameStateProvider extends ChangeNotifier {
     storyEvents = StoryEvent.generateDefaultStoryEvents();
     inventory = InventoryItem.createDefaultCatalog();
     activeBuffs = [];
+
+    // Pre-load default opponent dossier records
+    opponentRecords = {
+      'Berto Batuta': OpponentRecord(
+        id: 'Berto Batuta',
+        name: 'Berto Batuta',
+        title: 'Purok Heavy Hitter',
+        gymName: 'Ilaya Bakbakan Gym',
+        style: FighterStyle.soloBaston,
+        matchesFought: 1,
+        wins: 0,
+        losses: 1,
+        highestDamageDealt: 14,
+        lastResult: 'TALO',
+        lastEncounter: 'Elementary Grade 4',
+      ),
+      'Kanor "Sipol"': OpponentRecord(
+        id: 'Kanor "Sipol"',
+        name: 'Kanor "Sipol"',
+        title: 'Tricycle Driver Arnisador',
+        gymName: 'Toda Purok Club',
+        style: FighterStyle.soloBaston,
+        matchesFought: 0,
+        wins: 0,
+        losses: 0,
+        highestDamageDealt: 0,
+        lastResult: 'WALA PA',
+        lastEncounter: 'Hindi pa nakaharap',
+      ),
+      'Dodong Eskrima': OpponentRecord(
+        id: 'Dodong Eskrima',
+        name: 'Dodong Eskrima',
+        title: 'Barangay San Isidro Rep',
+        gymName: 'San Isidro Bastoneros',
+        style: FighterStyle.dobleBaston,
+        matchesFought: 0,
+        wins: 0,
+        losses: 0,
+        highestDamageDealt: 0,
+        lastResult: 'WALA PA',
+        lastEncounter: 'Hindi pa nakaharap',
+      ),
+      'Lorenzo Dela Cruz': OpponentRecord(
+        id: 'Lorenzo Dela Cruz',
+        name: 'Lorenzo Dela Cruz',
+        title: 'Private Academy Prodigy',
+        gymName: 'Dela Cruz Martial Guild',
+        style: FighterStyle.espadaYDaga,
+        matchesFought: 0,
+        wins: 0,
+        losses: 0,
+        highestDamageDealt: 0,
+        lastResult: 'WALA PA',
+        lastEncounter: 'Hindi pa nakaharap',
+      ),
+    };
 
     checkStoryTriggers('start');
   }
@@ -611,6 +671,111 @@ class GameStateProvider extends ChangeNotifier {
     advanceOneWeek();
   }
 
+  // OPPONENT DOSSIER & HEAD-TO-HEAD MATCH RECORDING
+  void recordOpponentMatch({
+    required TournamentOpponent opponent,
+    required bool won,
+    required int maxDamage,
+  }) {
+    final key = opponent.name;
+    final record = opponentRecords.putIfAbsent(
+      key,
+      () => OpponentRecord(
+        id: key,
+        name: opponent.name,
+        title: opponent.title,
+        gymName: opponent.gymName,
+        style: opponent.style,
+      ),
+    );
+
+    record.matchesFought += 1;
+    if (won) {
+      record.wins += 1;
+      record.lastResult = 'PANALO';
+    } else {
+      record.losses += 1;
+      record.lastResult = 'TALO';
+    }
+    if (maxDamage > record.highestDamageDealt) {
+      record.highestDamageDealt = maxDamage;
+    }
+    record.lastEncounter = 'Yr $year, Mn $month Wk $week';
+    notifyListeners();
+    saveGame();
+  }
+
+  // ADVANCE TOURNAMENT BRACKET
+  void handleBracketMatchResult({
+    required TournamentModel tournament,
+    required TournamentOpponent currentOpponent,
+    required bool won,
+    required int maxDamage,
+  }) {
+    recordOpponentMatch(
+      opponent: currentOpponent,
+      won: won,
+      maxDamage: maxDamage,
+    );
+
+    final bracket = tournament.bracket;
+    if (bracket == null) {
+      completeTournament(tournament, won);
+      return;
+    }
+
+    final activeMatch = bracket.activePlayerMatch;
+    if (activeMatch == null) {
+      completeTournament(tournament, won);
+      return;
+    }
+
+    if (!won) {
+      activeMatch.winnerName = activeMatch.fighter2Name;
+      activeMatch.isCompleted = true;
+      bracket.isFinished = true;
+      completeTournament(tournament, false);
+      return;
+    }
+
+    // Player Won!
+    activeMatch.winnerName = fighter.name;
+    activeMatch.isCompleted = true;
+
+    if (activeMatch.matchId == 1) {
+      // Simulate Semifinals B (Match 2)
+      final match2 = bracket.matches.firstWhere((m) => m.matchId == 2);
+      if (!match2.isCompleted) {
+        final f1 = match2.fighter1Data;
+        final f2 = match2.fighter2Data;
+        final rnd = Random();
+        final f1Power = (f1?.power ?? 20) + rnd.nextDouble() * 5;
+        final f2Power = (f2?.power ?? 20) + rnd.nextDouble() * 5;
+        final winner = f1Power >= f2Power ? f1 : f2;
+        match2.winnerName = winner?.name ?? match2.fighter1Name;
+        match2.isCompleted = true;
+      }
+
+      // Populate Championship Final (Match 3)
+      final finals = bracket.matches.firstWhere((m) => m.matchId == 3);
+      finals.fighter1Name = fighter.name;
+      finals.fighter2Name = match2.winnerName!;
+      finals.fighter2Data = match2.fighter1Name == match2.winnerName
+          ? match2.fighter1Data
+          : match2.fighter2Data;
+      finals.isPlayerMatch = true;
+      bracket.currentRoundIndex = 1;
+
+      recentLog = '[ABANTE] Pasok sa Championship Finals ng ${tournament.title}! Makakatapat si ${finals.fighter2Name}!';
+      notifyListeners();
+      saveGame();
+    } else if (activeMatch.matchId == 3) {
+      // Won the Championship Final!
+      bracket.isFinished = true;
+      completeTournament(tournament, true);
+    }
+  }
+
   // STORY EVENT TRIGGER SYSTEM
   void checkStoryTriggers(String condition) {
     for (final event in storyEvents) {
@@ -652,6 +817,7 @@ class GameStateProvider extends ChangeNotifier {
       'storyEvents': storyEvents.map((e) => e.toJson()).toList(),
       'inventory': inventory.map((it) => it.toJson()).toList(),
       'activeBuffs': activeBuffs.map((b) => b.toJson()).toList(),
+      'opponentRecords': opponentRecords.map((k, v) => MapEntry(k, v.toJson())),
       'bgmVolume': bgmVolume,
       'sfxVolume': sfxVolume,
     };
@@ -717,6 +883,13 @@ class GameStateProvider extends ChangeNotifier {
             .toList();
       } else {
         activeBuffs = [];
+      }
+
+      final rawRecords = data['opponentRecords'] as Map<String, dynamic>?;
+      if (rawRecords != null) {
+        opponentRecords = rawRecords.map(
+          (k, v) => MapEntry(k, OpponentRecord.fromJson(v as Map<String, dynamic>)),
+        );
       }
 
       bgmVolume = (data['bgmVolume'] as num?)?.toDouble() ?? 0.8;

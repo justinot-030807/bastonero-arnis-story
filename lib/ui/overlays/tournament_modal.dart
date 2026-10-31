@@ -6,11 +6,15 @@ import '../retro_ui.dart';
 class TournamentModal extends StatefulWidget {
   final GameStateProvider gameState;
   final void Function(TournamentModel tournament, TournamentOpponent opponent) onStartMatch;
+  final void Function(TournamentModel tournament)? onOpenBracket;
+  final void Function(TournamentModel tournament, TournamentOpponent opponent)? onOpenAnalysis;
 
   const TournamentModal({
     super.key,
     required this.gameState,
     required this.onStartMatch,
+    this.onOpenBracket,
+    this.onOpenAnalysis,
   });
 
   @override
@@ -36,8 +40,8 @@ class _TournamentModalState extends State<TournamentModal> {
 
     return Center(
       child: RetroBox(
-        width: 520,
-        height: MediaQuery.of(context).size.height * 0.88,
+        width: 530,
+        height: MediaQuery.of(context).size.height * 0.90,
         title: 'PALIGSAHAN AT TOURNAMENTS',
         titleTrailing: IconButton(
           icon: const Icon(Icons.close, color: Colors.white, size: 18),
@@ -82,7 +86,7 @@ class _TournamentModalState extends State<TournamentModal> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text('STREET & COMMUNITY TRACK', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold, fontFamily: 'monospace')),
-                        Text('No Grade Check - Fast Cash (P)', style: TextStyle(color: Color(0xFFFDE047), fontSize: 8, fontFamily: 'monospace')),
+                        Text('Walang Grado Check - Pera (P)', style: TextStyle(color: Color(0xFFFDE047), fontSize: 8, fontFamily: 'monospace')),
                       ],
                     ),
                   ),
@@ -101,6 +105,12 @@ class _TournamentModalState extends State<TournamentModal> {
                   final isGradeOk = fighter.isEligibleForSchoolVarsity;
                   final isMonthScheduled = isSchool ? (t.scheduledMonth == currentMonth) : true;
                   final canEnter = isSchool ? (isGradeOk && isMonthScheduled) : true;
+
+                  final activeOpponent = t.bracket?.activePlayerMatch?.fighter2Data ??
+                      (t.rounds.isNotEmpty ? t.rounds.first : null);
+                  final h2h = activeOpponent != null
+                      ? widget.gameState.opponentRecords[activeOpponent.name]
+                      : null;
 
                   return Container(
                     margin: const EdgeInsets.only(bottom: 8),
@@ -134,7 +144,7 @@ class _TournamentModalState extends State<TournamentModal> {
                               color: canEnter ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
                               child: Text(
                                 canEnter
-                                    ? '[BUKAS]'
+                                    ? (t.isCompleted ? '[KAMPEON]' : '[BUKAS]')
                                     : (!isGradeOk ? '[SUSPINDIDO <80]' : '[SKED M${t.scheduledMonth}]'),
                                 style: const TextStyle(color: Colors.white, fontSize: 8, fontFamily: 'monospace', fontWeight: FontWeight.bold),
                               ),
@@ -154,26 +164,91 @@ class _TournamentModalState extends State<TournamentModal> {
                               Text('Fee: P${t.entryFee}', style: const TextStyle(color: Color(0xFFE6482E), fontSize: 9, fontFamily: 'monospace')),
                           ],
                         ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                'Katunggali: ${t.rounds.last.name}',
+                        const SizedBox(height: 6),
+
+                        // Opponent Name & H2H record summary
+                        if (activeOpponent != null)
+                          Row(
+                            children: [
+                              Text(
+                                'Katunggali: ${activeOpponent.name}',
                                 style: const TextStyle(color: Color(0xFFCBD5E1), fontSize: 9, fontFamily: 'monospace', fontStyle: FontStyle.italic),
                               ),
+                              const SizedBox(width: 8),
+                              if (h2h != null)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                  color: const Color(0xFF0F172A),
+                                  child: Text(
+                                    'H2H: ${h2h.recordString}',
+                                    style: const TextStyle(color: Color(0xFFFDE047), fontSize: 8, fontFamily: 'monospace'),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        const SizedBox(height: 8),
+
+                        // BUTTONS: BRACKET LADDER & SURIIN (ANALYSIS) & LABAN
+                        Row(
+                          children: [
+                            // Bracket Ladder Button
+                            Expanded(
+                              child: RetroButton(
+                                height: 30,
+                                color: const Color(0xFF0284C7),
+                                onTap: () {
+                                  Navigator.of(context).pop();
+                                  widget.onOpenBracket?.call(t);
+                                },
+                                child: const Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    PixelSpriteWidget(matrix: PixelArtCatalog.miniTrophy, pixelSize: 1.0),
+                                    SizedBox(width: 4),
+                                    Text('BRACKETS', style: TextStyle(color: Colors.white, fontSize: 8, fontFamily: 'monospace', fontWeight: FontWeight.bold)),
+                                  ],
+                                ),
+                              ),
                             ),
-                            RetroButton(
-                              height: 30,
-                              padding: const EdgeInsets.symmetric(horizontal: 12),
-                              color: canEnter ? const Color(0xFFE6482E) : const Color(0xFF475569),
-                              onTap: canEnter
-                                  ? () {
-                                      Navigator.of(context).pop();
-                                      widget.onStartMatch(t, t.rounds.first);
-                                    }
-                                  : null,
-                              child: const Text('LABAN (FIGHT)', style: TextStyle(color: Colors.white, fontSize: 9, fontFamily: 'monospace', fontWeight: FontWeight.bold)),
+                            const SizedBox(width: 6),
+
+                            // Analysis Button
+                            if (activeOpponent != null)
+                              Expanded(
+                                child: RetroButton(
+                                  height: 30,
+                                  color: const Color(0xFF0D9488),
+                                  onTap: canEnter
+                                      ? () {
+                                          Navigator.of(context).pop();
+                                          widget.onOpenAnalysis?.call(t, activeOpponent);
+                                        }
+                                      : null,
+                                  child: const Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      PixelSpriteWidget(matrix: PixelArtCatalog.miniWind, pixelSize: 1.0),
+                                      SizedBox(width: 4),
+                                      Text('SURIIN', style: TextStyle(color: Colors.white, fontSize: 8, fontFamily: 'monospace', fontWeight: FontWeight.bold)),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            const SizedBox(width: 6),
+
+                            // Direct Fight Button
+                            Expanded(
+                              child: RetroButton(
+                                height: 30,
+                                color: canEnter ? const Color(0xFFE6482E) : const Color(0xFF475569),
+                                onTap: canEnter && activeOpponent != null
+                                    ? () {
+                                        Navigator.of(context).pop();
+                                        widget.onStartMatch(t, activeOpponent);
+                                      }
+                                    : null,
+                                child: const Text('LABAN (FIGHT)', style: TextStyle(color: Colors.white, fontSize: 8, fontFamily: 'monospace', fontWeight: FontWeight.bold)),
+                              ),
                             ),
                           ],
                         ),

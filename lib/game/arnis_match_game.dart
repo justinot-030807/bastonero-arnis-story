@@ -11,7 +11,7 @@ class ArnisMatchGame extends FlameGame {
   final FighterModel opponentFighter;
   final ArenaType arenaType;
   final TournamentModel? tournament;
-  final void Function(bool playerWon)? onMatchEnded;
+  final void Function(bool playerWon, int maxDamage)? onMatchEnded;
 
   late ArenaComponent arena;
   late FighterComponent player;
@@ -21,6 +21,11 @@ class ArnisMatchGame extends FlameGame {
   double matchTimer = 60.0;
   bool isMatchOver = false;
   bool isPlayerWinner = false;
+
+  // Combo & Damage Tracking (Image 4 Art Style)
+  int playerComboCount = 0;
+  double comboTimer = 0.0;
+  int highestDamageDealt = 0;
 
   // Coach Gigil / Aura Meter (0.0 to 100.0)
   double coachGigilMeter = 30.0;
@@ -80,6 +85,28 @@ class ArnisMatchGame extends FlameGame {
 
     player.onHitLanded = (attacker, damage, isCrit) {
       coachGigilMeter = (coachGigilMeter + 10.0).clamp(0.0, 100.0);
+      if (damage.toInt() > highestDamageDealt) {
+        highestDamageDealt = damage.toInt();
+      }
+
+      playerComboCount += 1;
+      comboTimer = 2.4;
+
+      // Floating Combo Banner (Image 4 Emulation)
+      if (playerComboCount >= 2) {
+        add(FloatingTextComponent(
+          text: '$playerComboCount-Hit Combo!',
+          position: Vector2(opponent.position.x - 35, opponent.position.y - 110),
+          color: const Color(0xFFEF4444),
+          fontSize: 15,
+          upwardSpeed: 30,
+        ));
+        _addAnnouncerLog('$playerComboCount-Hit Combo mula kay ${playerFighter.name}!');
+      }
+    };
+
+    opponent.onHitLanded = (attacker, damage, isCrit) {
+      playerComboCount = 0;
     };
 
     player.onClinchTriggered = _handleClinchTriggered;
@@ -199,6 +226,13 @@ class ArnisMatchGame extends FlameGame {
 
     if (isMatchOver) return;
 
+    if (comboTimer > 0) {
+      comboTimer -= scaledDt;
+      if (comboTimer <= 0) {
+        playerComboCount = 0;
+      }
+    }
+
     coachGigilMeter = (coachGigilMeter + (4.0 * scaledDt)).clamp(0.0, 100.0);
 
     matchTimer -= scaledDt;
@@ -226,6 +260,14 @@ class ArnisMatchGame extends FlameGame {
     isMatchOver = true;
     isPlayerWinner = playerWon;
 
+    if (playerWon) {
+      player.animState = FighterAnimState.victory;
+      opponent.animState = FighterAnimState.knockdown;
+    } else {
+      player.animState = FighterAnimState.knockdown;
+      opponent.animState = FighterAnimState.victory;
+    }
+
     final resultText = playerWon ? '[PANALO! VICTORY]' : '[TALO! DEFEAT]';
     final resultColor = playerWon ? const Color(0xFF22C55E) : const Color(0xFFDC2626);
 
@@ -238,6 +280,6 @@ class ArnisMatchGame extends FlameGame {
     ));
 
     _addOverlaySafely('matchResult');
-    onMatchEnded?.call(playerWon);
+    onMatchEnded?.call(playerWon, highestDamageDealt);
   }
 }

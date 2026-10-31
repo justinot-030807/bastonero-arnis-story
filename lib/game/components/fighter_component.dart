@@ -13,6 +13,8 @@ enum FighterAnimState {
   blocking,
   hitStun,
   clinch,
+  knockdown,
+  victory,
 }
 
 class FighterComponent extends PositionComponent {
@@ -395,11 +397,18 @@ class FighterComponent extends PositionComponent {
   }
 
   void _renderProceduralPixelFighter(Canvas canvas) {
+    if (animState == FighterAnimState.knockdown) {
+      _renderKnockdown(canvas);
+      return;
+    }
+
     double bounceY = 0;
     if (animState == FighterAnimState.idle) {
       bounceY = sin(animTimer * 5.0) * 1.5;
     } else if (animState == FighterAnimState.stepping) {
       bounceY = sin(animTimer * 12.0) * 3.0;
+    } else if (animState == FighterAnimState.victory) {
+      bounceY = sin(animTimer * 8.0) * 2.5;
     } else if (animState == FighterAnimState.hitStun) {
       bounceY = (Random().nextDouble() - 0.5) * 4.0;
     }
@@ -456,7 +465,51 @@ class FighterComponent extends PositionComponent {
     canvas.drawRect(Rect.fromLTWH(27, 14 + bounceY, 3, 3), eye);
 
     // Bastons & Arms
-    _renderBastonsAndArms(canvas, bounceY, skin, outline);
+    if (animState == FighterAnimState.victory) {
+      _renderVictoryArms(canvas, bounceY, skin, outline);
+    } else {
+      _renderBastonsAndArms(canvas, bounceY, skin, outline);
+    }
+  }
+
+  void _renderVictoryArms(Canvas canvas, double bounceY, Paint skin, Paint outline) {
+    final stickPaint = _getWeaponPaint();
+
+    // Left Arm Raised in Victory
+    canvas.drawRect(Rect.fromLTWH(6, 6 + bounceY, 8, 20), skin);
+    canvas.drawRect(Rect.fromLTWH(6, 6 + bounceY, 8, 20), outline);
+    canvas.drawRect(Rect.fromLTWH(8, -16 + bounceY, 5, 26), stickPaint);
+    canvas.drawRect(Rect.fromLTWH(8, -16 + bounceY, 5, 26), outline);
+
+    // Right Arm Raised in Victory
+    canvas.drawRect(Rect.fromLTWH(34, 6 + bounceY, 8, 20), skin);
+    canvas.drawRect(Rect.fromLTWH(34, 6 + bounceY, 8, 20), outline);
+    canvas.drawRect(Rect.fromLTWH(35, -16 + bounceY, 5, 26), stickPaint);
+    canvas.drawRect(Rect.fromLTWH(35, -16 + bounceY, 5, 26), outline);
+  }
+
+  void _renderKnockdown(Canvas canvas) {
+    final outline = Paint()
+      ..color = const Color(0xFF1A1C2C)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+    final skin = Paint()..color = const Color(0xFFF2B880);
+    final pants = Paint()..color = const Color(0xFF1E293B);
+    final body = Paint()..color = sandoColor;
+    final shoes = Paint()..color = const Color(0xFFDC2626);
+
+    // Fallen flat on mat
+    canvas.drawRect(const Rect.fromLTWH(4, 62, 14, 12), skin);
+    canvas.drawRect(const Rect.fromLTWH(4, 62, 14, 12), outline);
+
+    canvas.drawRect(const Rect.fromLTWH(18, 64, 18, 11), body);
+    canvas.drawRect(const Rect.fromLTWH(18, 64, 18, 11), outline);
+
+    canvas.drawRect(const Rect.fromLTWH(36, 66, 16, 9), pants);
+    canvas.drawRect(const Rect.fromLTWH(36, 66, 16, 9), outline);
+
+    canvas.drawRect(const Rect.fromLTWH(50, 68, 8, 7), shoes);
+    canvas.drawRect(const Rect.fromLTWH(50, 68, 8, 7), outline);
   }
 
   void _renderBastonsAndArms(Canvas canvas, double bounceY, Paint skin, Paint outline) {

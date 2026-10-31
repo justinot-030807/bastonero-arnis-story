@@ -14,6 +14,8 @@ import 'overlays/timing_minigame_overlay.dart';
 import 'overlays/match_result_overlay.dart';
 import 'overlays/training_modal.dart';
 import 'overlays/tournament_modal.dart';
+import 'overlays/tournament_bracket_modal.dart';
+import 'overlays/experts_analysis_modal.dart';
 import 'overlays/gym_builder_modal.dart';
 import 'overlays/story_dialog_modal.dart';
 import 'overlays/tiangge_modal.dart';
@@ -32,6 +34,7 @@ class _MainDashboardState extends State<MainDashboard> {
     required FighterModel player,
     required FighterModel opponent,
     TournamentModel? tournament,
+    TournamentOpponent? tournamentOpponent,
     ArenaType arenaType = ArenaType.purokLupa,
   }) {
     final game = ArnisMatchGame(
@@ -39,9 +42,16 @@ class _MainDashboardState extends State<MainDashboard> {
       opponentFighter: opponent,
       tournament: tournament,
       arenaType: arenaType,
-      onMatchEnded: (won) {
+      onMatchEnded: (won, maxDamage) {
         final provider = Provider.of<GameStateProvider>(context, listen: false);
-        if (tournament != null) {
+        if (tournament != null && tournamentOpponent != null) {
+          provider.handleBracketMatchResult(
+            tournament: tournament,
+            currentOpponent: tournamentOpponent,
+            won: won,
+            maxDamage: maxDamage,
+          );
+        } else if (tournament != null) {
           provider.completeTournament(tournament, won);
         } else {
           provider.advanceOneWeek(
@@ -56,6 +66,67 @@ class _MainDashboardState extends State<MainDashboard> {
     setState(() {
       _activeGame = game;
     });
+  }
+
+  void _launchTournamentBout(TournamentModel tourney, TournamentOpponent opp) {
+    final state = Provider.of<GameStateProvider>(context, listen: false);
+    final arena = tourney.track == TournamentTrack.schoolTrack
+        ? (tourney.id == 'palarong_pambansa'
+            ? ArenaType.nationalArena
+            : ArenaType.coveredCourt)
+        : ArenaType.purokLupa;
+    _startMatch(
+      player: state.fighter,
+      opponent: opp.toFighterModel(),
+      tournament: tourney,
+      tournamentOpponent: opp,
+      arenaType: arena,
+    );
+  }
+
+  void _openBracketModal(TournamentModel tourney) {
+    showDialog(
+      context: context,
+      builder: (ctx) => TournamentBracketModal(
+        gameState: Provider.of<GameStateProvider>(context, listen: false),
+        tournament: tourney,
+        onOpenAnalysis: (t, opp) {
+          Navigator.of(ctx).pop();
+          _openAnalysisModal(t, opp);
+        },
+        onStartMatch: (t, opp) {
+          Navigator.of(ctx).pop();
+          _launchTournamentBout(t, opp);
+        },
+        onBack: () => Navigator.of(ctx).pop(),
+      ),
+    );
+  }
+
+  void _openAnalysisModal(TournamentModel? tourney, TournamentOpponent opp) {
+    showDialog(
+      context: context,
+      builder: (ctx) => ExpertsAnalysisModal(
+        gameState: Provider.of<GameStateProvider>(context, listen: false),
+        tournament: tourney,
+        opponent: opp,
+        onBack: () => Navigator.of(ctx).pop(),
+        onStartFight: () {
+          Navigator.of(ctx).pop();
+          if (tourney != null) {
+            _launchTournamentBout(tourney, opp);
+          } else {
+            final state = Provider.of<GameStateProvider>(context, listen: false);
+            _startMatch(
+              player: state.fighter,
+              opponent: opp.toFighterModel(),
+              tournamentOpponent: opp,
+              arenaType: ArenaType.purokLupa,
+            );
+          }
+        },
+      ),
+    );
   }
 
   void _exitMatch() {
@@ -595,8 +666,21 @@ class _MainDashboardState extends State<MainDashboard> {
             matrix: PixelArtCatalog.iconSpar,
             color: const Color(0xFF10B981),
             onTap: () {
-              final opp = FighterModel.createBertoRival(level: state.year);
-              _startMatch(player: state.fighter, opponent: opp, arenaType: ArenaType.purokLupa);
+              final opp = TournamentOpponent(
+                name: 'Berto Batuta',
+                title: 'Purok Heavy Hitter',
+                gymName: 'Ilaya Bakbakan Gym',
+                officialRecord: '10-2-1',
+                hp: 110.0 + (state.year * 15),
+                power: 18.0 + (state.year * 3),
+                speed: 13.0 + (state.year * 2),
+                technique: 12.0 + (state.year * 2),
+                defense: 12.0 + (state.year * 2.5),
+                style: FighterStyle.soloBaston,
+                weapon: WeaponItem.bahi,
+                dialogue: 'Handa ka na ba para sa friendly sparring sa bakuran?',
+              );
+              _openAnalysisModal(null, opp);
             },
           ),
           _buildActionButton(
@@ -609,19 +693,9 @@ class _MainDashboardState extends State<MainDashboard> {
                 context: context,
                 builder: (ctx) => TournamentModal(
                   gameState: state,
-                  onStartMatch: (tourney, opp) {
-                    final arena = tourney.track == TournamentTrack.schoolTrack
-                        ? (tourney.id == 'palarong_pambansa'
-                            ? ArenaType.nationalArena
-                            : ArenaType.coveredCourt)
-                        : ArenaType.purokLupa;
-                    _startMatch(
-                      player: state.fighter,
-                      opponent: opp.toFighterModel(),
-                      tournament: tourney,
-                      arenaType: arena,
-                    );
-                  },
+                  onOpenBracket: (tourney) => _openBracketModal(tourney),
+                  onOpenAnalysis: (tourney, opp) => _openAnalysisModal(tourney, opp),
+                  onStartMatch: (tourney, opp) => _launchTournamentBout(tourney, opp),
                 ),
               );
             },
