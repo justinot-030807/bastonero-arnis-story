@@ -19,7 +19,40 @@
     "hitBonus": 0.0,
     "damageMultiplier": 0.60,
     "hits": 2,
-    "description": "Tuluy-tuloy na paikot na hataw. 2 palo sa 60% lakas."
+    "description": "Tuluy-tuloy na paikot na hataw. 2 palo sa 60% lakas bawat isa."
+  },
+  {
+    "id": "hataw_kanyon",
+    "name": "Hataw Kanyon",
+    "style": "SoloBaston",
+    "requiredStat": "lakas",
+    "requiredValue": 50,
+    "hitBonus": -0.05,
+    "damageMultiplier": 1.60,
+    "hits": 1,
+    "description": "Napakabigat na pababang hataw. Nagdudulot ng matinding pinsala."
+  },
+  {
+    "id": "doblada",
+    "name": "Doblada",
+    "style": "SoloBaston",
+    "requiredStat": "bilis",
+    "requiredValue": 45,
+    "hitBonus": 0.10,
+    "damageMultiplier": 0.75,
+    "hits": 2,
+    "description": "Mabilis na dalawahang hagupit sa parehong direksyon."
+  },
+  {
+    "id": "abaniko_tres_puntas",
+    "name": "Abaniko Tres Puntas",
+    "style": "SoloBaston",
+    "requiredStat": "diskarte",
+    "requiredValue": 65,
+    "hitBonus": 0.20,
+    "damageMultiplier": 1.80,
+    "hits": 3,
+    "description": "Sining ng tatlong anggulo: ulo, tadyang, at tuhod. 2x finisher sa perfect tap."
   },
   {
     "id": "sinawali",
@@ -33,6 +66,39 @@
     "description": "Paghahabi ng dalawang baston. 3 mabilis na patama sa 40% bawat isa."
   },
   {
+    "id": "krusada",
+    "name": "Krusada",
+    "style": "DobleBaston",
+    "requiredStat": "lakas",
+    "requiredValue": 40,
+    "hitBonus": 0.0,
+    "damageMultiplier": 1.30,
+    "hits": 1,
+    "description": "Pagkurus ng dalawang baston para sa isang mabigat na pagsabog ng pwersa."
+  },
+  {
+    "id": "heaven_six",
+    "name": "Heaven Six Flurry",
+    "style": "DobleBaston",
+    "requiredStat": "bilis",
+    "requiredValue": 55,
+    "hitBonus": 0.15,
+    "damageMultiplier": 0.35,
+    "hits": 6,
+    "description": "Anim na sunud-sunod na palo sa itaas at gitnang anggulo nang walang tigil."
+  },
+  {
+    "id": "ikot_kidlat",
+    "name": "Ikot Kidlat",
+    "style": "DobleBaston",
+    "requiredStat": "bilis",
+    "requiredValue": 70,
+    "hitBonus": 0.20,
+    "damageMultiplier": 0.50,
+    "hits": 4,
+    "description": "Bumubusilak na paikot na combo na may +15% tsansa ng kritikal na patama."
+  },
+  {
     "id": "tusok",
     "name": "Tusok",
     "style": "EspadaYDaga",
@@ -41,7 +107,7 @@
     "hitBonus": 0.05,
     "damageMultiplier": 1.15,
     "hits": 1,
-    "description": "Tusok na sumusuot sa depensa, binalewala ang 30% ng Salag."
+    "description": "Tusok na sumusuot sa depensa, binalewala ang 30% ng Salag ng kalaban."
   },
   {
     "id": "siko",
@@ -52,7 +118,7 @@
     "hitBonus": 0.0,
     "damageMultiplier": 0.90,
     "hits": 1,
-    "description": "Malapitang siko na nagpapatigil ng galaw ng kalaban."
+    "description": "Malapitang siko na nagpapatigil ng sunod na galaw ng katunggali."
   },
   {
     "id": "hubad",
@@ -66,14 +132,14 @@
     "description": "Pag-ipit ng baston ng kalaban upang hindi makatira ng 3 segundo."
   },
   {
-    "id": "abaniko_tres_puntas",
-    "name": "Abaniko Tres Puntas",
-    "style": "SoloBaston",
+    "id": "punyal_kidlat",
+    "name": "Punyal Kidlat",
+    "style": "EspadaYDaga",
     "requiredStat": "diskarte",
-    "requiredValue": 65,
-    "hitBonus": 0.20,
-    "damageMultiplier": 1.80,
-    "hits": 3,
-    "description": "Tunay na sining ng tatlong anggulo: ulo, tadyang, at tuhod. 2x finisher sa perfect tap."
+    "requiredValue": 75,
+    "hitBonus": 0.25,
+    "damageMultiplier": 2.0,
+    "hits": 2,
+    "description": "Lihim na kombinasyon ng daga at baston. Sagad sa pinsala at depensa."
   }
 ]

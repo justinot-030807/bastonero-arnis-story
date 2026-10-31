@@ -5,7 +5,8 @@
 - **Silkscreen**: Designed by Jason Kottke. Licensed under the SIL Open Font License (OFL) v1.1.
 
 ## Audio & Music
-- To be credited upon inclusion in Phase 7 (CC0 Public Domain).
+- **8-bit Chiptune SFX & Jingles**: CC0 1.0 Universal / Public Domain (Kenney.nl audio pack, SubspaceAudio).
+- **Haptic & Tactile Audio**: Flutter System Sound Services (`SystemSoundType.click`, `HapticFeedback`).
 
 ## Graphics & Sprites
 - Custom pixel-art assets and CC0 / Public Domain tilesets conforming to Section 12 specifications.

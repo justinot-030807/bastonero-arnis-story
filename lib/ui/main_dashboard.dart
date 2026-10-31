@@ -22,6 +22,10 @@ import 'overlays/monthly_summary_modal.dart';
 import 'overlays/event_dialog_modal.dart';
 import 'overlays/recruit_dialog_modal.dart';
 import 'overlays/graduation_modal.dart';
+import 'overlays/debug_panel_modal.dart';
+import 'overlays/tutorial_modal.dart';
+import 'overlays/yearly_report_modal.dart';
+import 'overlays/settings_modal.dart';
 import '../domain/systems/recruitment_system.dart';
 import 'overlays/story_dialog_modal.dart';
 import 'overlays/tiangge_modal.dart';
@@ -35,6 +39,42 @@ class MainDashboard extends StatefulWidget {
 
 class _MainDashboardState extends State<MainDashboard> {
   ArnisMatchGame? _activeGame;
+  int _dateTapCount = 0;
+  DateTime? _lastDateTapTime;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final state = Provider.of<GameStateProvider>(context, listen: false);
+      if (!state.hasCompletedTutorial) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => TutorialModal(gameState: state),
+        );
+      }
+    });
+  }
+
+  void _onDateTap(BuildContext context, GameStateProvider state) {
+    final now = DateTime.now();
+    if (_lastDateTapTime == null || now.difference(_lastDateTapTime!).inSeconds > 2) {
+      _dateTapCount = 1;
+    } else {
+      _dateTapCount++;
+    }
+    _lastDateTapTime = now;
+
+    if (_dateTapCount >= 5) {
+      _dateTapCount = 0;
+      showDialog(
+        context: context,
+        builder: (ctx) => DebugPanelModal(gameState: state),
+      );
+    }
+  }
 
   void _startMatch({
     required FighterModel player,
@@ -146,42 +186,7 @@ class _MainDashboardState extends State<MainDashboard> {
   void _openSystemMenu(BuildContext context, GameStateProvider gameState) {
     showDialog(
       context: context,
-      builder: (ctx) => Center(
-        child: RetroBox(
-          width: 320,
-          title: 'SYSTEM MENYU',
-          titleTrailing: IconButton(
-            icon: const Icon(Icons.close, color: Colors.white, size: 18),
-            onPressed: () => Navigator.of(ctx).pop(),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-          ),
-          backgroundColor: const Color(0xFF0F172A),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              RetroButton(
-                color: const Color(0xFF16A34A),
-                onTap: () {
-                  gameState.saveGame();
-                  Navigator.of(ctx).pop();
-                },
-                child: const Text('MANUAL SAVE NGAYON', style: TextStyle(color: Colors.white, fontSize: 11, fontFamily: 'monospace')),
-              ),
-              const SizedBox(height: 10),
-              RetroButton(
-                color: const Color(0xFF0284C7),
-                onTap: () {
-                  Navigator.of(ctx).pop();
-                  gameState.returnToTitle();
-                },
-                child: const Text('BUMALIK SA TITLE SCREEN', style: TextStyle(color: Colors.white, fontSize: 11, fontFamily: 'monospace')),
-              ),
-            ],
-          ),
-        ),
-      ),
+      builder: (ctx) => SettingsModal(gameState: gameState, isInGame: true),
     );
   }
 
@@ -417,6 +422,17 @@ class _MainDashboardState extends State<MainDashboard> {
                     onChooseRole: gameState.resolveGraduationRole,
                   ),
                 ),
+
+              // YEARLY REPORT MODAL
+              if (gameState.activeYearlyReport != null)
+                Container(
+                  color: Colors.black.withValues(alpha: 0.8),
+                  child: YearlyReportModal(
+                    gameState: gameState,
+                    data: gameState.activeYearlyReport!,
+                    onDismiss: gameState.dismissYearlyReport,
+                  ),
+                ),
             ],
           ),
         );
@@ -441,20 +457,24 @@ class _MainDashboardState extends State<MainDashboard> {
         children: [
           Row(
             children: [
-              // Calendar Pill
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0F172A),
-                  border: Border.all(color: const Color(0xFFF4B41B), width: 1.5),
-                ),
-                child: Text(
-                  'Y${state.year} Wk${state.week} - ${state.currentMonthName.split(' ').first}',
-                  style: const TextStyle(
-                    color: Color(0xFFFDE047),
-                    fontSize: 9,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'monospace',
+              // Calendar Pill (Tap 5x for Developer Debug Panel)
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => _onDateTap(context, state),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0F172A),
+                    border: Border.all(color: const Color(0xFFF4B41B), width: 1.5),
+                  ),
+                  child: Text(
+                    'Y${state.year} Wk${state.week} - ${state.currentMonthName.split(' ').first}',
+                    style: const TextStyle(
+                      color: Color(0xFFFDE047),
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'monospace',
+                    ),
                   ),
                 ),
               ),

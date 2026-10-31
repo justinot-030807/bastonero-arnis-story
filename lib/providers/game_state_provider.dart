@@ -21,6 +21,7 @@ import '../models/story_event_model.dart';
 import '../models/inventory_model.dart';
 import '../models/opponent_record_model.dart';
 import '../utils/storage_service.dart';
+import '../ui/overlays/yearly_report_modal.dart';
 
 enum ActionType {
   trainPower,
@@ -85,6 +86,8 @@ class GameStateProvider extends ChangeNotifier {
   GameEvent? activeEventDialog;
   RecruitmentCandidate? activeRecruitDialog;
   GraduationCandidate? activeGraduationDialog;
+  YearlyReportData? activeYearlyReport;
+  bool hasCompletedTutorial = false;
   final GameRng _gameRng = GameRng();
 
   // Camp & Multi-Floor Architecture (14-tile lane per floor)
@@ -225,6 +228,7 @@ class GameStateProvider extends ChangeNotifier {
     activeEventDialog = null;
     activeRecruitDialog = null;
     activeGraduationDialog = null;
+    activeYearlyReport = null;
 
     slots = List<FacilityModel?>.filled(8, null);
     // Starter facility in slot 0: Gulong Target
@@ -939,6 +943,76 @@ class GameStateProvider extends ChangeNotifier {
     } else {
       recentLog = '[REMEDIAL] Bagsak ang school year! Grado: ${fighter.academics.toStringAsFixed(1)}';
     }
+
+    final topStudent = camp.students.isNotEmpty
+        ? camp.students.reduce((a, b) => a.totalStats > b.totalStats ? a : b)
+        : null;
+    activeYearlyReport = YearlyReportData(
+      completedYear: year - 1,
+      endingMoney: pesos,
+      totalFame: prestige,
+      campRank: camp.rankTier,
+      activeStudentsCount: camp.students.length,
+      alumniCount: camp.alumni.length,
+      topStudentName: topStudent?.name ?? fighter.name,
+      topStudentTotalStats: topStudent?.totalStats ?? (fighter.power + fighter.speed + fighter.defense + fighter.technique),
+      totalTitlesWon: tournaments.where((t) => t.isCompleted).length,
+    );
+    autoPause();
+  }
+
+  void dismissYearlyReport() {
+    activeYearlyReport = null;
+    notifyListeners();
+  }
+
+  void resetTutorial() {
+    hasCompletedTutorial = false;
+    notifyListeners();
+  }
+
+  // --- PHASE 7 DEVELOPER DEBUG CHEATS ---
+  void debugAddPesos(int amount) {
+    pesos += amount;
+    camp.money += amount;
+    recentLog = '[DEBUG] Nagdagdag ng +P$amount!';
+    notifyListeners();
+  }
+
+  void debugAddProdigy(Student student) {
+    camp.students.add(student);
+    recentLog = '[DEBUG] Naka-enroll ang 5-Star Prodigy: ${student.name}!';
+    notifyListeners();
+  }
+
+  void debugMaxStats() {
+    final s = camp.students.isNotEmpty ? camp.students.first : null;
+    if (s != null) {
+      s.lakas = 999.0;
+      s.bilis = 999.0;
+      s.salag = 999.0;
+      s.diskarte = 999.0;
+      s.morale = 100.0;
+      s.fatigue = 0.0;
+      s.gradePercent = 95.0;
+      syncFighterWithActiveStudent();
+      recentLog = '[DEBUG] Max Stats (999) ibinigay kay ${s.name}!';
+      notifyListeners();
+    }
+  }
+
+  void debugForceEvent(GameEvent ev) {
+    activeEventDialog = ev;
+    autoPause();
+    notifyListeners();
+  }
+
+  void debugSkipMonth() {
+    for (int i = 0; i < 4; i++) {
+      advanceOneWeek();
+    }
+    recentLog = '[DEBUG] Nilaktawan ang 1 buwan (4 na linggo).';
+    notifyListeners();
   }
 
   // INVENTORY & NUTRITION CONSUMPTION
@@ -1433,6 +1507,7 @@ class GameStateProvider extends ChangeNotifier {
     camp.fame = prestige;
     final data = {
       'version': 3,
+      'hasCompletedTutorial': hasCompletedTutorial,
       'year': year,
       'month': month,
       'week': week,
@@ -1472,6 +1547,7 @@ class GameStateProvider extends ChangeNotifier {
     if (data == null) return false;
 
     try {
+      hasCompletedTutorial = data['hasCompletedTutorial'] as bool? ?? true;
       year = data['year'] as int? ?? 1;
       month = data['month'] as int? ?? 6;
       week = data['week'] as int? ?? 1;

@@ -245,6 +245,7 @@ class _LiveBakuranCampViewState extends State<LiveBakuranCampView> with SingleTi
                         tricycleX: _tricycleX,
                         pedestrianX: _pedestrianX,
                         animTick: _animController.value,
+                        month: state.month,
                       ),
                     ),
                   ),
@@ -340,6 +341,7 @@ class _MultiFloorCutawayCampPainter extends CustomPainter {
   final double tricycleX;
   final double pedestrianX;
   final double animTick;
+  final int month;
 
   _MultiFloorCutawayCampPainter({
     required this.unlockedFloors,
@@ -352,6 +354,7 @@ class _MultiFloorCutawayCampPainter extends CustomPainter {
     required this.tricycleX,
     required this.pedestrianX,
     required this.animTick,
+    required this.month,
   });
 
   @override
@@ -359,12 +362,25 @@ class _MultiFloorCutawayCampPainter extends CustomPainter {
     final w = size.width;
     final h = size.height;
 
+    final isRainy = month >= 6 && month <= 10;
+    final isChristmas = month == 12;
+
     // 1. SKY & DISTANT MOUNTAIN (TOP)
-    final skyPaint = Paint()..color = const Color(0xFF60A5FA);
+    final skyColor = isRainy
+        ? const Color(0xFF475569) // Rainy monsoon sky
+        : (isChristmas ? const Color(0xFF1E3A8A) : const Color(0xFF60A5FA));
+    final skyPaint = Paint()..color = skyColor;
     canvas.drawRect(Rect.fromLTWH(0, 0, w, 40), skyPaint);
 
-    final sunPaint = Paint()..color = const Color(0xFFFDE047);
-    canvas.drawRect(Rect.fromLTWH(w * 0.84, 8, 16, 16), sunPaint);
+    if (!isRainy) {
+      final sunPaint = Paint()..color = const Color(0xFFFDE047);
+      canvas.drawRect(Rect.fromLTWH(w * 0.84, 8, 16, 16), sunPaint);
+    } else {
+      // Overcast cloud in sky
+      final cloudPaint = Paint()..color = const Color(0xFF94A3B8);
+      canvas.drawRect(Rect.fromLTWH(w * 0.70, 10, 48, 14), cloudPaint);
+      canvas.drawRect(Rect.fromLTWH(w * 0.76, 6, 32, 8), cloudPaint);
+    }
 
     // 2. CORRUGATED TIN ROOF & SIGNBOARD
     final roofY = 32.0;
@@ -372,6 +388,29 @@ class _MultiFloorCutawayCampPainter extends CustomPainter {
     final roofTrim = Paint()..color = const Color(0xFF1E293B);
     canvas.drawRect(Rect.fromLTWH(6, roofY, w - 12, 8), roofPaint);
     canvas.drawRect(Rect.fromLTWH(4, roofY + 6, w - 8, 3), roofTrim);
+
+    // Festive Christmas Lights & Parol (December)
+    if (isChristmas) {
+      // Blinking holiday lights along the roof trim
+      for (double lx = 10; lx < w - 10; lx += 14) {
+        final lightColor = ((lx.toInt() + (animTick * 10).toInt()) % 3 == 0)
+            ? const Color(0xFFEF4444)
+            : (((lx.toInt() + (animTick * 10).toInt()) % 3 == 1)
+                ? const Color(0xFF22C55E)
+                : const Color(0xFFFDE047));
+        canvas.drawCircle(Offset(lx, roofY + 6), 2.0, Paint()..color = lightColor);
+      }
+
+      // Traditional 5-point Star Parol hanging in center
+      final parolCenter = Offset(w * 0.5, roofY + 14);
+      canvas.drawLine(Offset(w * 0.5, roofY + 5), parolCenter, Paint()..color = Colors.white..strokeWidth = 1.0);
+      canvas.drawCircle(parolCenter, 6.0, Paint()..color = const Color(0xFFFDE047));
+      canvas.drawCircle(parolCenter, 3.5, Paint()..color = const Color(0xFFDC2626));
+      // Parol tails
+      final tailPaint = Paint()..color = const Color(0xFFFDE047)..strokeWidth = 1.5;
+      canvas.drawLine(parolCenter + const Offset(-2, 5), parolCenter + const Offset(-4, 15), tailPaint);
+      canvas.drawLine(parolCenter + const Offset(2, 5), parolCenter + const Offset(4, 15), tailPaint);
+    }
 
     // 3. STACKED MULTI-FLOORS (from top floor down to 1F)
     final floorHeight = 70.0;
@@ -421,6 +460,18 @@ class _MultiFloorCutawayCampPainter extends CustomPainter {
     final groundFloorBottom = startY + (unlockedFloors * floorHeight);
     _drawStudents(canvas, w, groundFloorBottom);
     _drawChibiCoach(canvas, w, groundFloorBottom);
+
+    // 8. SEASONAL MONSOON RAIN (June - October)
+    if (isRainy) {
+      final rainPaint = Paint()
+        ..color = const Color(0xFF93C5FD).withValues(alpha: 0.50)
+        ..strokeWidth = 1.0;
+      for (int i = 0; i < 35; i++) {
+        final rx = (i * 23.0 + animTick * 320.0) % w;
+        final ry = (i * 31.0 + animTick * 520.0) % h;
+        canvas.drawLine(Offset(rx, ry), Offset(rx - 2.5, ry + 6), rainPaint);
+      }
+    }
   }
 
   void _drawFloorRoom(Canvas canvas, double w, double topY, double height, {required int floorNum}) {

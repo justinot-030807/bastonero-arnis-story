@@ -1,11 +1,11 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/game_state_provider.dart';
 import '../utils/storage_service.dart';
 import 'retro_ui.dart';
 import 'overlays/character_creator_modal.dart';
+import 'overlays/settings_modal.dart';
 
 class TitleScreen extends StatefulWidget {
   const TitleScreen({super.key});
@@ -84,7 +84,7 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
   void _openSettingsDialog(BuildContext context, GameStateProvider gameState) {
     showDialog(
       context: context,
-      builder: (ctx) => _SettingsModal(gameState: gameState),
+      builder: (ctx) => SettingsModal(gameState: gameState, isInGame: false),
     );
   }
 
@@ -608,156 +608,4 @@ class _SaveSlotsModal extends StatelessWidget {
   }
 }
 
-/// Settings & JSON Backup Modal Dialog
-class _SettingsModal extends StatefulWidget {
-  final GameStateProvider gameState;
 
-  const _SettingsModal({required this.gameState});
-
-  @override
-  State<_SettingsModal> createState() => _SettingsModalState();
-}
-
-class _SettingsModalState extends State<_SettingsModal> {
-  final TextEditingController _jsonController = TextEditingController();
-  String _statusMsg = '';
-
-  @override
-  void dispose() {
-    _jsonController.dispose();
-    super.dispose();
-  }
-
-  void _exportJson() async {
-    final jsonStr = await StorageService.exportActiveSaveJson(widget.gameState.activeSlotIndex);
-    _jsonController.text = jsonStr;
-    await Clipboard.setData(ClipboardData(text: jsonStr));
-    setState(() {
-      _statusMsg = '[KOPYA] Save JSON nakopya sa Clipboard!';
-    });
-  }
-
-  void _importJson() async {
-    final text = _jsonController.text.trim();
-    if (text.isEmpty) {
-      setState(() => _statusMsg = '[MALI] I-paste muna ang Save JSON!');
-      return;
-    }
-
-    final success = await StorageService.importSaveJson(widget.gameState.activeSlotIndex, text);
-    if (success) {
-      await widget.gameState.loadSavedGame(slot: widget.gameState.activeSlotIndex);
-      setState(() => _statusMsg = '[AYOS] Tagumpay na na-import ang Save Data!');
-    } else {
-      setState(() => _statusMsg = '[MALI] Hindi wastong Save JSON data!');
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: RetroBox(
-        width: 480,
-        title: 'SETTINGS & DATA BACKUP',
-        titleTrailing: IconButton(
-          icon: const Icon(Icons.close, color: Colors.white, size: 18),
-          onPressed: () => Navigator.of(context).pop(),
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(),
-        ),
-        backgroundColor: const Color(0xFF0F172A),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // AUDIO VOLUME SLIDERS
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('BGM TUNOG:', style: TextStyle(color: Colors.white, fontSize: 11, fontFamily: 'monospace')),
-                Slider(
-                  value: widget.gameState.bgmVolume,
-                  onChanged: (val) {
-                    setState(() => widget.gameState.bgmVolume = val);
-                  },
-                  activeColor: const Color(0xFFF4B41B),
-                ),
-              ],
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('SFX HATAW:', style: TextStyle(color: Colors.white, fontSize: 11, fontFamily: 'monospace')),
-                Slider(
-                  value: widget.gameState.sfxVolume,
-                  onChanged: (val) {
-                    setState(() => widget.gameState.sfxVolume = val);
-                  },
-                  activeColor: const Color(0xFF38BDF8),
-                ),
-              ],
-            ),
-            const Divider(color: Color(0xFF334155)),
-
-            // JSON EXPORT / IMPORT
-            const Text(
-              'MANUAL JSON BACKUP & TRANSFER:',
-              style: TextStyle(
-                color: Color(0xFFFDE047),
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-                fontFamily: 'monospace',
-              ),
-            ),
-            const SizedBox(height: 6),
-            TextField(
-              controller: _jsonController,
-              maxLines: 4,
-              style: const TextStyle(color: Color(0xFF4ADE80), fontSize: 9, fontFamily: 'monospace'),
-              decoration: const InputDecoration(
-                hintText: 'I-paste ang JSON save string dito para i-import...',
-                hintStyle: TextStyle(color: Color(0xFF64748B), fontSize: 9),
-                fillColor: Color(0xFF1E293B),
-                filled: true,
-                border: OutlineInputBorder(borderSide: BorderSide(color: Color(0xFF475569))),
-              ),
-            ),
-            const SizedBox(height: 8),
-
-            Row(
-              children: [
-                Expanded(
-                  child: RetroButton(
-                    color: const Color(0xFF0284C7),
-                    onTap: _exportJson,
-                    child: const Text('EXPORT & COPY', style: TextStyle(color: Colors.white, fontSize: 10, fontFamily: 'monospace')),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: RetroButton(
-                    color: const Color(0xFF16A34A),
-                    onTap: _importJson,
-                    child: const Text('IMPORT & LOAD', style: TextStyle(color: Colors.white, fontSize: 10, fontFamily: 'monospace')),
-                  ),
-                ),
-              ],
-            ),
-            if (_statusMsg.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text(
-                _statusMsg,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Color(0xFFFDE047),
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: 'monospace',
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
