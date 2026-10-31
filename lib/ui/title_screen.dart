@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../providers/game_state_provider.dart';
 import '../utils/storage_service.dart';
 import 'retro_ui.dart';
+import 'overlays/character_creator_modal.dart';
 
 class TitleScreen extends StatefulWidget {
   const TitleScreen({super.key});
@@ -43,6 +44,20 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
     super.dispose();
   }
 
+  void _openCharacterCreator(BuildContext context, GameStateProvider gameState, int slotIndex) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => CharacterCreatorModal(
+        gameState: gameState,
+        slotIndex: slotIndex,
+        onGameStarted: () {
+          Navigator.of(ctx).pop();
+        },
+      ),
+    );
+  }
+
   void _openSaveSlotsDialog(BuildContext context, GameStateProvider gameState) {
     showDialog(
       context: context,
@@ -54,7 +69,7 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
             await gameState.loadSavedGame(slot: slotIndex);
             gameState.enterGame();
           } else {
-            gameState.startNewGame(slot: slotIndex);
+            _openCharacterCreator(context, gameState, slotIndex);
           }
         },
         onDeleteSlot: (slotIndex) async {

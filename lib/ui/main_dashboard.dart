@@ -177,6 +177,106 @@ class _MainDashboardState extends State<MainDashboard> {
     );
   }
 
+  void _openEditProfileDialog(BuildContext context, GameStateProvider gameState) {
+    final nameCtrl = TextEditingController(text: gameState.fighter.name);
+    final nickCtrl = TextEditingController(text: gameState.fighter.nickname);
+    final gymCtrl = TextEditingController(text: gameState.fighter.gymName);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => Center(
+        child: Material(
+          color: Colors.transparent,
+          child: RetroBox(
+            width: 360,
+            title: 'I-EDIT ANG PROFILE NG ARNISADOR',
+            titleTrailing: IconButton(
+              icon: const Icon(Icons.close, color: Colors.white, size: 18),
+              onPressed: () => Navigator.of(ctx).pop(),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+            backgroundColor: const Color(0xFF0F172A),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  'Pangalan ng Arnisador:',
+                  style: TextStyle(color: Color(0xFF94A3B8), fontSize: 10, fontFamily: 'monospace'),
+                ),
+                const SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E293B),
+                    border: Border.all(color: const Color(0xFF38BDF8)),
+                  ),
+                  child: TextField(
+                    controller: nameCtrl,
+                    style: const TextStyle(color: Colors.white, fontSize: 12, fontFamily: 'monospace'),
+                    decoration: const InputDecoration(border: InputBorder.none, isDense: true),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                const Text(
+                  'Alias / Palayaw (Nickname):',
+                  style: TextStyle(color: Color(0xFF94A3B8), fontSize: 10, fontFamily: 'monospace'),
+                ),
+                const SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E293B),
+                    border: Border.all(color: const Color(0xFF38BDF8)),
+                  ),
+                  child: TextField(
+                    controller: nickCtrl,
+                    style: const TextStyle(color: Colors.white, fontSize: 12, fontFamily: 'monospace'),
+                    decoration: const InputDecoration(border: InputBorder.none, isDense: true),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                const Text(
+                  'Pangalan ng Camp / Gym:',
+                  style: TextStyle(color: Color(0xFF94A3B8), fontSize: 10, fontFamily: 'monospace'),
+                ),
+                const SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E293B),
+                    border: Border.all(color: const Color(0xFF38BDF8)),
+                  ),
+                  child: TextField(
+                    controller: gymCtrl,
+                    style: const TextStyle(color: Colors.white, fontSize: 12, fontFamily: 'monospace'),
+                    decoration: const InputDecoration(border: InputBorder.none, isDense: true),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                RetroButton(
+                  color: const Color(0xFF16A34A),
+                  onTap: () {
+                    final n = nameCtrl.text.trim();
+                    final k = nickCtrl.text.trim();
+                    final g = gymCtrl.text.trim();
+                    if (n.isNotEmpty) gameState.fighter.name = n;
+                    if (k.isNotEmpty) gameState.fighter.nickname = k;
+                    if (g.isNotEmpty) gameState.fighter.gymName = g;
+                    gameState.saveGame();
+                    Navigator.of(ctx).pop();
+                  },
+                  child: const Text('I-SAVE ANG PAGBABAGO', style: TextStyle(color: Colors.white, fontSize: 11, fontFamily: 'monospace', fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<GameStateProvider>(
@@ -504,13 +604,46 @@ class _MainDashboardState extends State<MainDashboard> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      f.name,
-                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            '${f.name} "${f.nickname}"',
+                            style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        GestureDetector(
+                          onTap: () => _openEditProfileDialog(context, state),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF0F172A),
+                              border: Border.all(color: const Color(0xFFF4B41B), width: 1),
+                            ),
+                            child: const Text(
+                              'I-EDIT',
+                              style: TextStyle(color: Color(0xFFFDE047), fontSize: 7, fontFamily: 'monospace', fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     Text(
-                      '${f.gradeLevelDescription} - Edad: ${f.age}',
-                      style: const TextStyle(color: Color(0xFF8B9BB4), fontSize: 9, fontFamily: 'monospace'),
+                      'Gym: ${f.gymName} | ${f.gradeLevelDescription} (${f.age} y/o)',
+                      style: const TextStyle(color: Color(0xFF8B9BB4), fontSize: 8.5, fontFamily: 'monospace'),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      'Coach: ${f.coachName} (${f.coachTitle})',
+                      style: const TextStyle(color: Color(0xFF4ADE80), fontSize: 8.5, fontFamily: 'monospace'),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      'Perk: ${f.coachPerk}',
+                      style: const TextStyle(color: Color(0xFFFACC15), fontSize: 8, fontFamily: 'monospace'),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),

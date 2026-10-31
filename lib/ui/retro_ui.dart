@@ -1039,7 +1039,7 @@ class RetroBox extends StatelessWidget {
         ),
         padding: padding,
         child: Column(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisSize: height != null ? MainAxisSize.max : MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             if (title != null) ...[
@@ -1081,7 +1081,10 @@ class RetroBox extends StatelessWidget {
                 margin: const EdgeInsets.only(bottom: 8),
               ),
             ],
-            child,
+            if (height != null)
+              Expanded(child: child)
+            else
+              child,
           ],
         ),
       ),

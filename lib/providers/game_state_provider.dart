@@ -196,13 +196,69 @@ class GameStateProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void startNewGame({int slot = 1}) {
+  void startNewGame({
+    int slot = 1,
+    String? fighterName,
+    String? fighterNickname,
+    String? gymName,
+    String? coachName,
+    String? coachTitle,
+    String? coachPerk,
+    String? gender,
+    int? skinIndex,
+    int? headbandColorIndex,
+    int? hairIndex,
+    FighterStyle? startingStyle,
+  }) {
     activeSlotIndex = slot;
     StorageService.setActiveSlotIndex(slot);
     _initializeDefaultState();
+
+    if (fighterName != null && fighterName.trim().isNotEmpty) {
+      fighter.name = fighterName.trim();
+    }
+    if (fighterNickname != null && fighterNickname.trim().isNotEmpty) {
+      fighter.nickname = fighterNickname.trim();
+    }
+    if (gymName != null && gymName.trim().isNotEmpty) {
+      fighter.gymName = gymName.trim();
+    }
+    if (coachName != null) fighter.coachName = coachName;
+    if (coachTitle != null) fighter.coachTitle = coachTitle;
+    if (coachPerk != null) fighter.coachPerk = coachPerk;
+    if (gender != null) fighter.gender = gender;
+    if (skinIndex != null) fighter.skinIndex = skinIndex;
+    if (headbandColorIndex != null) fighter.headbandColorIndex = headbandColorIndex;
+    if (hairIndex != null) fighter.hairIndex = hairIndex;
+    if (startingStyle != null) {
+      fighter.style = startingStyle;
+      fighter.styleMasteries[startingStyle] = 2; // Starter mastery boost
+    }
+
+    _triggerPrologueStoryEvent();
+
     isInTitleScreen = false;
     notifyListeners();
     saveGame();
+  }
+
+  void _triggerPrologueStoryEvent() {
+    activeDialogueEvent = StoryEvent(
+      id: 'story_prologue',
+      title: 'Panimula: Pangarap ng Bastonero',
+      speaker: fighter.coachName,
+      speakerRole: fighter.coachTitle,
+      dialogues: [
+        'Maligayang pagdating sa ${fighter.gymName}! Simple man ang ating bakuran at gawa lamang sa yantok at gulong ang ating mga gamit, dito sumisibol ang tunay na mandirigma.',
+        'Coach, pangarap ko pong maging Kampeon at dalhin ang karangalan ng ating barangay!',
+        'Maganda ang iyong apoy, ${fighter.name}! Ngunit tandaan: sa sports na ito, balance ang kailangan. Bawal ang bagsak sa klase—dapat Grado >= 80 para makasali sa School Varsity Intrams.',
+        'Magsanay tayo sa gulong dummy, magbasa sa lilim ng mangga, at magsipag! Handa na ba ang iyong baston?',
+      ],
+      triggerCondition: 'start',
+      rewardPesos: 150,
+      rewardPower: 1.0,
+      rewardTechnique: 1.0,
+    );
   }
 
   // Active Synergies evaluated from slot placements

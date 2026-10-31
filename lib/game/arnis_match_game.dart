@@ -60,9 +60,14 @@ class ArnisMatchGame extends FlameGame {
     arena = ArenaComponent(size: size, arenaType: arenaType);
     add(arena);
 
-    final floorY = size.y * 0.78;
-    final pX = size.x * 0.28;
-    final oX = size.x * 0.72;
+    final topBound = 85.0;
+    final bottomBound = size.y - 215.0;
+    final arenaCenterY = topBound + (bottomBound - topBound) * 0.50;
+    final arenaCenterX = size.x * 0.5;
+
+    final floorY = arenaCenterY + 14.0;
+    final pX = arenaCenterX - 45.0;
+    final oX = arenaCenterX + 45.0;
 
     player = FighterComponent(
       fighter: playerFighter,

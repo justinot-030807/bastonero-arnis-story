@@ -22,9 +22,8 @@ class _LiveBakuranCampViewState extends State<LiveBakuranCampView> with SingleTi
   late AnimationController _animController;
 
   // Autonomous Character States
-  double _bayaniX = 0.35; // 0.0 to 1.0 of gym width
-  double _bayaniFloor = 0.0; // 0 = ground floor, 1 = upper floor
-  int _bayaniActionState = 0; // 0: walking, 1: striking, 2: studying, 3: drinking buko
+  double _bayaniX = 0.28;
+  int _bayaniActionState = 0; // 0: walking, 1: striking, 2: studying, 3: resting
   double _actionTimer = 0.0;
   String _bayaniBubble = 'Sanay tayo!';
   String _floatingStat = '';
@@ -33,7 +32,7 @@ class _LiveBakuranCampViewState extends State<LiveBakuranCampView> with SingleTi
   double _coachX = 0.65;
   String _coachBubble = 'Hataw!';
 
-  double _tricycleX = -0.3; // -0.3 to 1.3 across the road
+  double _tricycleX = -0.3;
   double _pedestrianX = 1.1;
 
   @override
@@ -41,59 +40,62 @@ class _LiveBakuranCampViewState extends State<LiveBakuranCampView> with SingleTi
     super.initState();
     _animController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 12),
+      duration: const Duration(seconds: 10),
     )..addListener(_updateAutonomousCharacters)..repeat();
   }
 
   void _updateAutonomousCharacters() {
     final t = _animController.value;
 
-    // Tricycle drives along bottom road
-    _tricycleX = -0.2 + (t * 1.5) % 1.5;
+    // Tricycle drives along bottom street
+    _tricycleX = -0.25 + (t * 1.5) % 1.5;
 
     // Pedestrian walks along sidewalk
-    _pedestrianX = 1.1 - (t * 1.2) % 1.4;
+    _pedestrianX = 1.15 - (t * 1.2) % 1.4;
 
     _actionTimer += 0.016;
 
-    // Autonomous AI Cycle for Bayani
-    if (_actionTimer > 4.5) {
+    // Autonomous AI Cycle for Student Fighter
+    if (_actionTimer > 4.0) {
       _actionTimer = 0.0;
       final rnd = Random();
       _bayaniActionState = rnd.nextInt(4);
 
       if (_bayaniActionState == 1) {
-        // Striking Gulong Dummy
+        // Striking Tire Dummy
         _bayaniX = 0.22;
-        _bayaniFloor = 0.0;
         _bayaniBubble = 'Hataw!';
         _floatingStat = '+3 LAKAS';
         _floatingStatY = 0.0;
       } else if (_bayaniActionState == 2) {
         // Studying under Mango Tree
-        _bayaniX = 0.72;
-        _bayaniFloor = widget.gameState.maxSlots > 2 ? 1.0 : 0.0;
+        _bayaniX = 0.74;
         _bayaniBubble = 'Aral muna!';
         _floatingStat = '+2 GRADO';
         _floatingStatY = 0.0;
       } else if (_bayaniActionState == 3) {
-        // Drinking Buko
+        // Drinking Buko / Resting
         _bayaniX = 0.48;
-        _bayaniFloor = 0.0;
         _bayaniBubble = 'Sariwang Buko!';
         _floatingStat = '+10 HANGIN';
         _floatingStatY = 0.0;
       } else {
-        // Walking / Stance
-        _bayaniX = 0.30 + (rnd.nextDouble() * 0.35);
+        // Walking around the gym
+        _bayaniX = 0.30 + (rnd.nextDouble() * 0.38);
         _bayaniBubble = 'Bastonero!';
         _floatingStat = '';
       }
 
       // Coach reaction
-      final coachPhrases = ['Galingan mo!', 'Bantayan ang salag!', 'Asintado!', 'Diskarte ang kailangan!'];
+      final coachPhrases = [
+        'Galingan mo!',
+        'Bantayan ang salag!',
+        'Asintado ang palo!',
+        'Diskarte at bilis!',
+        'Pangalagaan ang grado!',
+      ];
       _coachBubble = coachPhrases[rnd.nextInt(coachPhrases.length)];
-      _coachX = 0.50 + (rnd.nextDouble() * 0.25);
+      _coachX = 0.52 + (rnd.nextDouble() * 0.20);
     }
 
     if (_floatingStat.isNotEmpty) {
@@ -114,7 +116,7 @@ class _LiveBakuranCampViewState extends State<LiveBakuranCampView> with SingleTi
     final state = widget.gameState;
 
     return RetroBox(
-      title: 'BAKURAN TRAINING CAMP (SIDE-VIEW CUTAWAY)',
+      title: '${state.fighter.gymName.toUpperCase()} (BAKURAN TRAINING CAMP)',
       titleTrailing: state.maxSlots < 6
           ? InkWell(
               onTap: state.pesos >= 1800 ? () => state.expandGymSlots() : null,
@@ -134,16 +136,15 @@ class _LiveBakuranCampViewState extends State<LiveBakuranCampView> with SingleTi
       padding: EdgeInsets.zero,
       child: Stack(
         children: [
-          // 1. SIDE-VIEW CUTAWAY CANVAS
+          // 1. SIDE-VIEW CUTAWAY CANVAS (PROVINCIAL BAKURAN SCENERY)
           SizedBox(
-            height: 260,
+            height: 250,
             width: double.infinity,
             child: CustomPaint(
-              painter: _CutawayCampPainter(
+              painter: _AuthenticBakuranCampPainter(
                 maxSlots: state.maxSlots,
                 slots: state.slots,
                 bayaniX: _bayaniX,
-                bayaniFloor: _bayaniFloor,
                 bayaniAction: _bayaniActionState,
                 coachX: _coachX,
                 tricycleX: _tricycleX,
@@ -153,20 +154,26 @@ class _LiveBakuranCampViewState extends State<LiveBakuranCampView> with SingleTi
             ),
           ),
 
-          // 2. SPEECH BUBBLES & FLOATING STATS OVERLAY
+          // 2. SPEECH BUBBLE & FLOATING STAT GAINS OVERLAY
           Positioned(
-            left: 20 + (_bayaniX * 260),
-            top: (_bayaniFloor > 0 ? 35 : 125) - _floatingStatY,
+            left: 20 + (_bayaniX * 240),
+            top: 100 - _floatingStatY,
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 if (_floatingStat.isNotEmpty)
-                  Text(
-                    _floatingStat,
-                    style: const TextStyle(
-                      color: Color(0xFFFDE047),
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      fontFamily: 'monospace',
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 2),
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                    color: const Color(0xFFFDE047),
+                    child: Text(
+                      _floatingStat,
+                      style: const TextStyle(
+                        color: Color(0xFF1A1C2C),
+                        fontSize: 8,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'monospace',
+                      ),
                     ),
                   ),
                 _buildSpeechBubble(_bayaniBubble, const Color(0xFFDC2626)),
@@ -174,29 +181,27 @@ class _LiveBakuranCampViewState extends State<LiveBakuranCampView> with SingleTi
             ),
           ),
 
+          // 3. COACH SPEECH BUBBLE OVERLAY
           Positioned(
-            left: 20 + (_coachX * 260),
-            top: 135,
-            child: _buildSpeechBubble(_coachBubble, const Color(0xFF0284C7)),
+            left: 20 + (_coachX * 240),
+            top: 110,
+            child: _buildSpeechBubble(_coachBubble, const Color(0xFF16A34A)),
           ),
 
-          // 3. INTERACTIVE TAP REGIONS FOR PHYSICAL SLOTS
+          // 4. INTERACTIVE FACILITY TAP BOXES
           Positioned.fill(
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final w = constraints.maxWidth;
                 final h = constraints.maxHeight;
-
                 return Stack(
                   children: [
-                    // Ground Floor Slots (Slots 0 and 1, plus 2 and 3 if expanded)
-                    for (int i = 0; i < state.maxSlots; i++) ...[
+                    for (int i = 0; i < state.maxSlots; i++)
                       _buildSlotTapZone(
                         slotIndex: i,
                         rect: _getSlotRect(i, state.maxSlots, w, h),
                         facility: state.slots[i],
                       ),
-                    ],
                   ],
                 );
               },
@@ -208,25 +213,11 @@ class _LiveBakuranCampViewState extends State<LiveBakuranCampView> with SingleTi
   }
 
   Rect _getSlotRect(int slot, int maxSlots, double w, double h) {
-    if (maxSlots <= 2) {
-      // 2 slots on ground floor
-      final slotW = (w - 30) / 2;
-      return Rect.fromLTWH(15 + (slot * slotW), h * 0.45, slotW - 8, h * 0.35);
-    } else if (maxSlots <= 4) {
-      // 2 ground, 2 upper
-      final row = slot ~/ 2;
-      final col = slot % 2;
-      final slotW = (w - 30) / 2;
-      final y = row == 0 ? h * 0.45 : h * 0.08;
-      return Rect.fromLTWH(15 + (col * slotW), y, slotW - 8, h * 0.35);
-    } else {
-      // 3 ground, 3 upper
-      final row = slot ~/ 3;
-      final col = slot % 3;
-      final slotW = (w - 36) / 3;
-      final y = row == 0 ? h * 0.45 : h * 0.08;
-      return Rect.fromLTWH(12 + (col * slotW), y, slotW - 6, h * 0.35);
-    }
+    final slotW = (w - 24) / (maxSlots > 2 ? 3 : 2);
+    final row = slot ~/ (maxSlots > 2 ? 3 : 2);
+    final col = slot % (maxSlots > 2 ? 3 : 2);
+    final y = row == 0 ? h * 0.40 : h * 0.08;
+    return Rect.fromLTWH(12 + (col * slotW), y, slotW - 6, h * 0.36);
   }
 
   Widget _buildSlotTapZone({
@@ -245,8 +236,10 @@ class _LiveBakuranCampViewState extends State<LiveBakuranCampView> with SingleTi
           margin: const EdgeInsets.all(2),
           decoration: BoxDecoration(
             border: Border.all(
-              color: facility != null ? const Color(0xFFF4B41B).withValues(alpha: 0.4) : const Color(0xFF64748B).withValues(alpha: 0.3),
-              width: 1.5,
+              color: facility != null
+                  ? const Color(0xFFF4B41B).withValues(alpha: 0.35)
+                  : const Color(0xFF64748B).withValues(alpha: 0.3),
+              width: 1.2,
             ),
             color: Colors.transparent,
           ),
@@ -254,7 +247,7 @@ class _LiveBakuranCampViewState extends State<LiveBakuranCampView> with SingleTi
             alignment: Alignment.topRight,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-              color: const Color(0xFF1A1C2C),
+              color: const Color(0xFF0F172A),
               child: Text(
                 facility != null ? 'L${facility.level}' : '+SLOT ${slotIndex + 1}',
                 style: const TextStyle(
@@ -273,7 +266,7 @@ class _LiveBakuranCampViewState extends State<LiveBakuranCampView> with SingleTi
 
   Widget _buildSpeechBubble(String text, Color borderColor) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
       decoration: BoxDecoration(
         color: const Color(0xFFF4ECE1),
         border: Border.all(color: borderColor, width: 1.5),
@@ -285,7 +278,7 @@ class _LiveBakuranCampViewState extends State<LiveBakuranCampView> with SingleTi
         text,
         style: const TextStyle(
           color: Color(0xFF1A1C2C),
-          fontSize: 8,
+          fontSize: 7.5,
           fontWeight: FontWeight.bold,
           fontFamily: 'monospace',
         ),
@@ -294,23 +287,21 @@ class _LiveBakuranCampViewState extends State<LiveBakuranCampView> with SingleTi
   }
 }
 
-/// CustomPainter that renders the Side-View Cutaway Gym and Street View
-class _CutawayCampPainter extends CustomPainter {
+/// CustomPainter that renders a rich, authentic Filipino Provincial Backyard Camp
+class _AuthenticBakuranCampPainter extends CustomPainter {
   final int maxSlots;
   final List<FacilityModel?> slots;
   final double bayaniX;
-  final double bayaniFloor;
   final int bayaniAction;
   final double coachX;
   final double tricycleX;
   final double pedestrianX;
   final double animTick;
 
-  _CutawayCampPainter({
+  _AuthenticBakuranCampPainter({
     required this.maxSlots,
     required this.slots,
     required this.bayaniX,
-    required this.bayaniFloor,
     required this.bayaniAction,
     required this.coachX,
     required this.tricycleX,
@@ -323,226 +314,274 @@ class _CutawayCampPainter extends CustomPainter {
     final w = size.width;
     final h = size.height;
 
-    final skyH = h * 0.40;
+    final skyH = h * 0.36;
+    final groundY = h * 0.40;
     final streetY = h * 0.82;
-    final groundFloorY = h * 0.44;
 
-    // 1. SKY & DISTANT TROPICAL TREES
-    final skyPaint = Paint()..color = const Color(0xFF38BDF8);
+    // 1. SUNNY PROVINCE SKY & DISTANT MOUNTAINS
+    final skyPaint = Paint()..color = const Color(0xFF60A5FA);
     canvas.drawRect(Rect.fromLTWH(0, 0, w, skyH), skyPaint);
 
+    // Warm Sun
     final sunPaint = Paint()..color = const Color(0xFFFDE047);
-    canvas.drawRect(Rect.fromLTWH(w * 0.8, 10, 24, 24), sunPaint);
+    canvas.drawRect(Rect.fromLTWH(w * 0.82, 12, 22, 22), sunPaint);
 
-    // Distant Coconut Tree Canopies
-    final foliagePaint = Paint()..color = const Color(0xFF2F5738);
-    for (double x = -10; x < w + 20; x += 36) {
-      canvas.drawRect(Rect.fromLTWH(x, skyH - 32, 28, 20), foliagePaint);
-    }
+    // Fluffy Pixel Clouds
+    final cloudPaint = Paint()..color = Colors.white.withValues(alpha: 0.8);
+    canvas.drawRect(Rect.fromLTWH(w * 0.15, 14, 38, 10), cloudPaint);
+    canvas.drawRect(Rect.fromLTWH(w * 0.20, 8, 26, 12), cloudPaint);
+    canvas.drawRect(Rect.fromLTWH(w * 0.55, 18, 32, 8), cloudPaint);
 
-    // 2. CUTAWAY WOODEN & BAMBOO GYM BUILDING
-    final borderPaint = Paint()
-      ..color = const Color(0xFF1A1C2C)
-      ..strokeWidth = 2.5
-      ..style = PaintingStyle.stroke;
+    // Distant Green Mountain Silhouette (Mt. Arayat style)
+    final mountainPaint = Paint()..color = const Color(0xFF15803D);
+    final mountainPath = Path()
+      ..moveTo(0, skyH)
+      ..lineTo(w * 0.25, skyH - 24)
+      ..lineTo(w * 0.45, skyH - 12)
+      ..lineTo(w * 0.70, skyH - 32)
+      ..lineTo(w, skyH - 8)
+      ..lineTo(w, skyH)
+      ..close();
+    canvas.drawPath(mountainPath, mountainPaint);
 
-    // Upper Floor (if expanded > 2 slots)
-    if (maxSlots > 2) {
-      final upperRect = Rect.fromLTWH(8, 18, w - 16, groundFloorY - 18);
-      final roomPaint = Paint()..color = const Color(0xFF564064);
-      canvas.drawRect(upperRect, roomPaint);
-      canvas.drawRect(upperRect, borderPaint);
+    // Coconut Palm Trees with trunks from the ground (NOT floating blocks!)
+    _drawPalmTree(canvas, 18, skyH);
+    _drawPalmTree(canvas, w - 24, skyH);
 
-      // Veranda Wooden Railing
-      final railingPaint = Paint()
-        ..color = const Color(0xFF8C532B)
-        ..strokeWidth = 3;
-      for (double rx = 14; rx < w - 20; rx += 12) {
-        canvas.drawLine(Offset(rx, groundFloorY - 14), Offset(rx, groundFloorY), railingPaint);
-      }
-      canvas.drawLine(Offset(10, groundFloorY - 14), Offset(w - 10, groundFloorY - 14), railingPaint);
-    }
+    // 2. WOODEN & BAMBOO TRAINING CAMP (BAKURAN PAVILION)
+    final campWallPaint = Paint()..color = const Color(0xFFD49B6A); // Warm bamboo/wood
+    final campRect = Rect.fromLTWH(8, groundY, w - 16, streetY - groundY);
+    canvas.drawRect(campRect, campWallPaint);
 
-    // Ground Floor Training Room
-    final groundRect = Rect.fromLTWH(8, groundFloorY, w - 16, streetY - groundFloorY);
-    final dirtFloorPaint = Paint()..color = const Color(0xFFD49B6A);
-    canvas.drawRect(groundRect, dirtFloorPaint);
-    canvas.drawRect(groundRect, borderPaint);
+    // Corrugated Tin Roof (Yero)
+    final roofPaint = Paint()..color = const Color(0xFF64748B);
+    final roofTrim = Paint()..color = const Color(0xFF1E293B);
+    canvas.drawRect(Rect.fromLTWH(4, groundY - 8, w - 8, 8), roofPaint);
+    canvas.drawRect(Rect.fromLTWH(2, groundY - 2, w - 4, 3), roofTrim);
 
     // Bamboo Wall Slat Textures
     final slatPaint = Paint()
       ..color = const Color(0xFFB57D42)
-      ..strokeWidth = 1.5;
-    for (double sy = groundFloorY + 12; sy < streetY; sy += 14) {
+      ..strokeWidth = 1.2;
+    for (double sy = groundY + 12; sy < streetY; sy += 12) {
       canvas.drawLine(Offset(10, sy), Offset(w - 10, sy), slatPaint);
     }
 
-    // 3. PHYSICAL PIXEL FACILITIES IN ROOMS
-    _drawPhysicalFacilities(canvas, w, groundFloorY, streetY);
+    // Heavy Wooden Support Posts
+    final postPaint = Paint()
+      ..color = const Color(0xFF8C532B)
+      ..strokeWidth = 4.0;
+    canvas.drawLine(Offset(14, groundY), Offset(14, streetY), postPaint);
+    canvas.drawLine(Offset(w - 14, groundY), Offset(w - 14, streetY), postPaint);
+    if (w > 300) {
+      canvas.drawLine(Offset(w * 0.5, groundY), Offset(w * 0.5, streetY), postPaint);
+    }
 
-    // 4. AUTONOMOUS CHARACTER PIXEL SPRITES
-    _drawAutonomousFighter(canvas, w, groundFloorY, streetY);
-    _drawAutonomousCoach(canvas, w, groundFloorY, streetY);
+    // Dirt & Grass Ground Floor
+    final dirtFloorPaint = Paint()..color = const Color(0xFF8C532B);
+    canvas.drawRect(Rect.fromLTWH(8, streetY - 6, w - 16, 6), dirtFloorPaint);
 
-    // 5. BOTTOM STREET VIEW (ASPHALT ROAD & SIDEWALK)
-    final sidewalkPaint = Paint()..color = const Color(0xFF8B9BB4);
+    // 3. PHYSICAL DETAILED PIXEL TRAINING FACILITIES
+    _drawDetailedFacilities(canvas, w, groundY, streetY);
+
+    // 4. AUTONOMOUS CHIBI CHARACTERS (BAYANI & COACH)
+    _drawChibiStudent(canvas, w, streetY - 6);
+    _drawChibiCoach(canvas, w, streetY - 6);
+
+    // 5. BOTTOM STREET VIEW: ASPHALT ROAD & SIDEWALK
+    final sidewalkPaint = Paint()..color = const Color(0xFF94A3B8);
     canvas.drawRect(Rect.fromLTWH(0, streetY, w, 10), sidewalkPaint);
 
     final roadPaint = Paint()..color = const Color(0xFF1E293B);
     canvas.drawRect(Rect.fromLTWH(0, streetY + 10, w, h - (streetY + 10)), roadPaint);
 
-    // Road White Dashes
+    // White dashed road lines
     final dashPaint = Paint()
       ..color = const Color(0xFFF4ECE1)
-      ..strokeWidth = 2;
-    for (double dx = 10; dx < w; dx += 30) {
-      canvas.drawLine(Offset(dx, streetY + 24), Offset(dx + 14, streetY + 24), dashPaint);
+      ..strokeWidth = 2.0;
+    for (double dx = 10; dx < w; dx += 28) {
+      canvas.drawLine(Offset(dx, streetY + 22), Offset(dx + 14, streetY + 22), dashPaint);
     }
 
-    // 6. MOVING TRICYCLE ON STREET
+    // 6. ANIMATED RETRO TRICYCLE
     _drawMovingTricycle(canvas, w, streetY + 10);
 
-    // 7. WALKING PEDESTRIAN ON SIDEWALK
-    _drawWalkingPedestrian(canvas, w, streetY - 14);
+    // 7. PEDESTRIAN ON SIDEWALK
+    _drawWalkingPedestrian(canvas, w, streetY - 10);
   }
 
-  void _drawPhysicalFacilities(Canvas canvas, double w, double upperY, double groundY) {
+  void _drawPalmTree(Canvas canvas, double x, double baseGroundY) {
+    // Curved trunk from ground
+    final trunk = Paint()
+      ..color = const Color(0xFF8C532B)
+      ..strokeWidth = 4.0;
+    canvas.drawLine(Offset(x, baseGroundY), Offset(x + 4, baseGroundY - 32), trunk);
+
+    // Palm Fronds
+    final frondPaint = Paint()..color = const Color(0xFF16A34A);
+    canvas.drawRect(Rect.fromLTWH(x - 12, baseGroundY - 40, 16, 6), frondPaint);
+    canvas.drawRect(Rect.fromLTWH(x + 2, baseGroundY - 40, 16, 6), frondPaint);
+    canvas.drawRect(Rect.fromLTWH(x - 8, baseGroundY - 44, 20, 6), frondPaint);
+  }
+
+  void _drawDetailedFacilities(Canvas canvas, double w, double topY, double bottomY) {
     for (int i = 0; i < maxSlots; i++) {
       final f = slots[i];
       if (f == null) continue;
 
-      final isUpper = i >= 3;
-      final col = isUpper ? (i - 3) : i;
-      final slotSpan = w / (isUpper ? 3 : (maxSlots > 2 ? 3 : 2));
-      final cx = (col * slotSpan) + (slotSpan * 0.5);
-      final cy = isUpper ? upperY - 18 : groundY - 18;
+      final cols = maxSlots > 2 ? 3 : 2;
+      final col = i % cols;
+      final slotSpan = (w - 24) / cols;
+      final cx = 12 + (col * slotSpan) + (slotSpan * 0.5);
+      final cy = bottomY - 14;
 
       switch (f.type) {
         case FacilityType.gulongTarget:
-          // Heavy truck tires stacked on bamboo post
-          final postPaint = Paint()
+          // Heavy truck tires stacked on a solid wooden post
+          final post = Paint()
             ..color = const Color(0xFF564064)
-            ..strokeWidth = 4;
-          canvas.drawLine(Offset(cx, cy), Offset(cx, cy - 35), postPaint);
+            ..strokeWidth = 5;
+          canvas.drawLine(Offset(cx, cy), Offset(cx, cy - 42), post);
 
-          final tirePaint = Paint()..color = const Color(0xFF1A1C2C);
-          canvas.drawRect(Rect.fromLTWH(cx - 10, cy - 28, 20, 8), tirePaint);
-          canvas.drawRect(Rect.fromLTWH(cx - 12, cy - 18, 24, 9), tirePaint);
-          canvas.drawRect(Rect.fromLTWH(cx - 14, cy - 9, 28, 9), tirePaint);
+          // 3 Stacked Rubber Tires with rope bindings
+          final tire = Paint()..color = const Color(0xFF1A1C2C);
+          final rim = Paint()..color = const Color(0xFF334155);
+          final rope = Paint()..color = const Color(0xFFF4B41B);
+
+          canvas.drawRect(Rect.fromLTWH(cx - 12, cy - 36, 24, 10), tire);
+          canvas.drawRect(Rect.fromLTWH(cx - 8, cy - 34, 16, 6), rim);
+
+          canvas.drawRect(Rect.fromLTWH(cx - 14, cy - 24, 28, 11), tire);
+          canvas.drawRect(Rect.fromLTWH(cx - 9, cy - 22, 18, 7), rim);
+
+          canvas.drawRect(Rect.fromLTWH(cx - 16, cy - 12, 32, 12), tire);
+          canvas.drawRect(Rect.fromLTWH(cx - 10, cy - 10, 20, 8), rim);
+
+          // Wrapped protective rope
+          canvas.drawRect(Rect.fromLTWH(cx - 3, cy - 35, 6, 34), rope);
           break;
 
         case FacilityType.studyDesk:
-          // Mango tree canopy with desk
+          // Mango Tree Shade + Study Table & Books
           final trunk = Paint()
             ..color = const Color(0xFF8C532B)
-            ..strokeWidth = 5;
-          canvas.drawLine(Offset(cx - 14, cy), Offset(cx - 14, cy - 40), trunk);
+            ..strokeWidth = 6;
+          canvas.drawLine(Offset(cx - 16, cy), Offset(cx - 16, cy - 46), trunk);
 
-          final mangoCanopy = Paint()..color = const Color(0xFF2F5738);
-          canvas.drawRect(Rect.fromLTWH(cx - 30, cy - 50, 36, 20), mangoCanopy);
+          // Lush Mango Canopy
+          final foliage = Paint()..color = const Color(0xFF15803D);
+          canvas.drawRect(Rect.fromLTWH(cx - 36, cy - 56, 44, 24), foliage);
 
-          // Golden ripe mangoes hanging
-          final mangoPaint = Paint()..color = const Color(0xFFF4B41B);
-          canvas.drawRect(Rect.fromLTWH(cx - 24, cy - 32, 4, 6), mangoPaint);
-          canvas.drawRect(Rect.fromLTWH(cx - 10, cy - 34, 4, 6), mangoPaint);
+          // Golden Yellow Mangoes
+          final mango = Paint()..color = const Color(0xFFFDE047);
+          canvas.drawRect(Rect.fromLTWH(cx - 28, cy - 36, 4, 6), mango);
+          canvas.drawRect(Rect.fromLTWH(cx - 12, cy - 38, 4, 6), mango);
+          canvas.drawRect(Rect.fromLTWH(cx - 2, cy - 40, 4, 6), mango);
 
-          // Wooden Study Desk & Books
-          final deskPaint = Paint()..color = const Color(0xFFB57D42);
-          canvas.drawRect(Rect.fromLTWH(cx - 8, cy - 16, 24, 16), deskPaint);
-          final bookPaint = Paint()..color = const Color(0xFF38BDF8);
-          canvas.drawRect(Rect.fromLTWH(cx - 4, cy - 20, 10, 4), bookPaint);
+          // Wooden Study Desk
+          final desk = Paint()..color = const Color(0xFFB57D42);
+          canvas.drawRect(Rect.fromLTWH(cx - 10, cy - 18, 28, 18), desk);
+
+          // Textbooks & Notepad
+          final book = Paint()..color = const Color(0xFF38BDF8);
+          final notebook = Paint()..color = Colors.white;
+          canvas.drawRect(Rect.fromLTWH(cx - 6, cy - 23, 12, 5), book);
+          canvas.drawRect(Rect.fromLTWH(cx + 8, cy - 21, 8, 3), notebook);
           break;
 
         case FacilityType.bukoStand:
-          // Striped umbrella and coconut rack
-          final pole = Paint()
-            ..color = const Color(0xFFB57D42)
-            ..strokeWidth = 3;
-          canvas.drawLine(Offset(cx, cy), Offset(cx, cy - 38), pole);
+          // Pinoy Sari-Sari / Buko Juice Stand
+          final counter = Paint()..color = const Color(0xFF8C532B);
+          canvas.drawRect(Rect.fromLTWH(cx - 18, cy - 20, 36, 20), counter);
 
-          // Striped Awning (Red & Cream)
+          // Striped Red & White Awning Canopy
           final awningRed = Paint()..color = const Color(0xFFDC2626);
           final awningWhite = Paint()..color = const Color(0xFFF4ECE1);
-          canvas.drawRect(Rect.fromLTWH(cx - 20, cy - 42, 20, 8), awningRed);
-          canvas.drawRect(Rect.fromLTWH(cx, cy - 42, 20, 8), awningWhite);
+          canvas.drawRect(Rect.fromLTWH(cx - 22, cy - 46, 22, 10), awningRed);
+          canvas.drawRect(Rect.fromLTWH(cx, cy - 46, 22, 10), awningWhite);
 
-          // Counter with green coconuts
-          final counter = Paint()..color = const Color(0xFF8C532B);
-          canvas.drawRect(Rect.fromLTWH(cx - 16, cy - 16, 32, 16), counter);
-          final nutPaint = Paint()..color = const Color(0xFF4ADE80);
-          canvas.drawCircle(Offset(cx - 8, cy - 18), 4, nutPaint);
-          canvas.drawCircle(Offset(cx + 4, cy - 18), 4, nutPaint);
+          // Canopy Poles
+          final pole = Paint()
+            ..color = const Color(0xFF1A1C2C)
+            ..strokeWidth = 2;
+          canvas.drawLine(Offset(cx - 20, cy - 20), Offset(cx - 20, cy - 36), pole);
+          canvas.drawLine(Offset(cx + 20, cy - 20), Offset(cx + 20, cy - 36), pole);
+
+          // Fresh Coconuts on Counter
+          final nut = Paint()..color = const Color(0xFF4ADE80);
+          canvas.drawRect(Rect.fromLTWH(cx - 12, cy - 24, 6, 6), nut);
+          canvas.drawRect(Rect.fromLTWH(cx - 4, cy - 24, 6, 6), nut);
+          canvas.drawRect(Rect.fromLTWH(cx + 4, cy - 24, 6, 6), nut);
           break;
 
         case FacilityType.sparringRing:
         case FacilityType.footworkTires:
-          // Bamboo sparring mat
-          final mat = Paint()..color = const Color(0xFFE2E8F0);
-          canvas.drawRect(Rect.fromLTWH(cx - 22, cy - 8, 44, 8), mat);
-          final matRope = Paint()
-            ..color = const Color(0xFFDC2626)
-            ..strokeWidth = 2;
-          canvas.drawLine(Offset(cx - 22, cy - 18), Offset(cx + 22, cy - 18), matRope);
+          // Agility Footwork Tires laid out on ground
+          final tire = Paint()..color = const Color(0xFF1A1C2C);
+          final dirt = Paint()..color = const Color(0xFF8C532B);
+          canvas.drawRect(Rect.fromLTWH(cx - 20, cy - 10, 12, 8), tire);
+          canvas.drawRect(Rect.fromLTWH(cx - 17, cy - 8, 6, 4), dirt);
+
+          canvas.drawRect(Rect.fromLTWH(cx - 4, cy - 14, 12, 8), tire);
+          canvas.drawRect(Rect.fromLTWH(cx - 1, cy - 12, 6, 4), dirt);
+
+          canvas.drawRect(Rect.fromLTWH(cx + 10, cy - 10, 12, 8), tire);
+          canvas.drawRect(Rect.fromLTWH(cx + 13, cy - 8, 6, 4), dirt);
           break;
       }
     }
   }
 
-  void _drawAutonomousFighter(Canvas canvas, double w, double upperY, double groundY) {
-    final fx = (bayaniX * w).clamp(20.0, w - 30.0);
-    final fy = bayaniFloor > 0 ? (upperY - 24) : (groundY - 24);
+  void _drawChibiStudent(Canvas canvas, double w, double groundY) {
+    final fx = (bayaniX * w).clamp(24.0, w - 34.0);
+    final fy = groundY - 32;
 
-    final bodyPaint = Paint()..color = const Color(0xFF1E293B);
-    final skinPaint = Paint()..color = const Color(0xFFF2B880);
-    final bandPaint = Paint()..color = const Color(0xFFDC2626);
-    final stickPaint = Paint()
-      ..color = const Color(0xFFF4B41B)
-      ..strokeWidth = 2.5;
+    canvas.save();
+    canvas.translate(fx, fy);
 
-    // Torso & Pants
-    canvas.drawRect(Rect.fromLTWH(fx, fy + 8, 10, 14), bodyPaint);
-    // Head & Red Bandana
-    canvas.drawRect(Rect.fromLTWH(fx + 1, fy, 8, 8), skinPaint);
-    canvas.drawRect(Rect.fromLTWH(fx, fy + 2, 10, 3), bandPaint);
-
+    // Pick sprite based on action
+    List<String> matrix = PixelArtCatalog.chibiBayaniIdle;
     if (bayaniAction == 1) {
-      // Striking baston swing
-      final swing = sin(animTick * 20 * pi) * 12.0;
-      canvas.drawLine(Offset(fx + 8, fy + 10), Offset(fx + 18, fy + 4 + swing), stickPaint);
+      matrix = PixelArtCatalog.chibiBayaniPunch;
+    } else if (bayaniAction == 2) {
+      matrix = PixelArtCatalog.chibiBayaniSit;
     } else {
-      // Resting / Idle stick held upright
-      canvas.drawLine(Offset(fx + 8, fy + 12), Offset(fx + 14, fy), stickPaint);
+      final isStep = (animTick * 8).toInt() % 2 == 1;
+      matrix = isStep ? PixelArtCatalog.chibiBayaniStep : PixelArtCatalog.chibiBayaniIdle;
     }
+
+    _drawMatrix(canvas, matrix, 1.8);
+    canvas.restore();
   }
 
-  void _drawAutonomousCoach(Canvas canvas, double w, double upperY, double groundY) {
-    final cx = (coachX * w).clamp(20.0, w - 30.0);
-    final cy = groundY - 24;
+  void _drawChibiCoach(Canvas canvas, double w, double groundY) {
+    final cx = (coachX * w).clamp(24.0, w - 34.0);
+    final cy = groundY - 32;
 
-    final bodyPaint = Paint()..color = const Color(0xFF2F5738);
-    final skinPaint = Paint()..color = const Color(0xFFF2B880);
-    final towelPaint = Paint()..color = const Color(0xFFF4ECE1);
+    canvas.save();
+    canvas.translate(cx, cy);
+    _drawMatrix(canvas, PixelArtCatalog.coachKanorPortrait, 1.8);
+    canvas.restore();
+  }
 
-    canvas.drawRect(Rect.fromLTWH(cx, cy + 8, 11, 14), bodyPaint);
-    canvas.drawRect(Rect.fromLTWH(cx + 1, cy, 9, 8), skinPaint);
-    // Towel draped over coach shoulder
-    canvas.drawRect(Rect.fromLTWH(cx, cy + 8, 4, 10), towelPaint);
+  void _drawMatrix(Canvas canvas, List<String> matrix, double pixelSize) {
+    final paint = Paint()..isAntiAlias = false;
+    for (int y = 0; y < matrix.length; y++) {
+      final row = matrix[y];
+      for (int x = 0; x < row.length; x++) {
+        final char = row[x];
+        if (char == '.') continue;
+        paint.color = RetroPalette.colorForChar(char);
+        canvas.drawRect(Rect.fromLTWH(x * pixelSize, y * pixelSize, pixelSize, pixelSize), paint);
+      }
+    }
   }
 
   void _drawMovingTricycle(Canvas canvas, double w, double roadY) {
     final tx = tricycleX * w;
     canvas.save();
     canvas.translate(tx, roadY);
-    // Draw 24x16 tricycle matrix
-    for (int y = 0; y < PixelArtCatalog.tricycleSprite.length; y++) {
-      final row = PixelArtCatalog.tricycleSprite[y];
-      for (int x = 0; x < row.length; x++) {
-        final char = row[x];
-        if (char == '.') continue;
-        final p = Paint()..color = RetroPalette.colorForChar(char);
-        canvas.drawRect(Rect.fromLTWH(x * 1.5, y * 1.2, 1.5, 1.2), p);
-      }
-    }
+    _drawMatrix(canvas, PixelArtCatalog.tricycleSprite, 1.4);
     canvas.restore();
   }
 
@@ -556,7 +595,7 @@ class _CutawayCampPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _CutawayCampPainter oldDelegate) {
+  bool shouldRepaint(covariant _AuthenticBakuranCampPainter oldDelegate) {
     return true;
   }
 }

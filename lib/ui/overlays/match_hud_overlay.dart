@@ -44,12 +44,12 @@ class _MatchHudOverlayState extends State<MatchHudOverlay> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
-                          'Red Corner: Bakuran Arnis Camp',
-                          style: TextStyle(color: Color(0xFFF87171), fontSize: 8, fontFamily: 'monospace', fontWeight: FontWeight.bold),
+                        Text(
+                          'Red Corner: ${p.fighter.gymName}',
+                          style: const TextStyle(color: Color(0xFFF87171), fontSize: 8, fontFamily: 'monospace', fontWeight: FontWeight.bold),
                         ),
                         Text(
-                          'Blue Corner: ${o.fighter.name.split(' ').first} Club',
+                          'Blue Corner: ${o.fighter.gymName.isNotEmpty ? o.fighter.gymName : "${o.fighter.name.split(' ').first} Club"}',
                           style: const TextStyle(color: Color(0xFF60A5FA), fontSize: 8, fontFamily: 'monospace', fontWeight: FontWeight.bold),
                         ),
                       ],

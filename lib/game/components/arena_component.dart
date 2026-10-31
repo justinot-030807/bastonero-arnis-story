@@ -86,21 +86,34 @@ class ArenaComponent extends PositionComponent {
   }) {
     final width = size.x;
     final height = size.y;
-    final horizonY = height * 0.36;
+
+    // In mobile portrait, top HUD takes ~85px, bottom HUD takes ~215px
+    final topBound = 85.0;
+    final bottomBound = height - 215.0;
+    final arenaCenterY = topBound + (bottomBound - topBound) * 0.50;
+    final arenaCenterX = width * 0.5;
+
+    // Kairosoft 2:1 isometric diamond ring proportions
+    final ringHalfW = min(width * 0.44, 160.0);
+    final ringHalfH = ringHalfW * 0.52; // ~83px
+
+    final ringTop = Offset(arenaCenterX, arenaCenterY - ringHalfH);
+    final ringBottom = Offset(arenaCenterX, arenaCenterY + ringHalfH);
+    final ringLeft = Offset(arenaCenterX - ringHalfW, arenaCenterY);
+    final ringRight = Offset(arenaCenterX + ringHalfW, arenaCenterY);
 
     // 1. BACKGROUND WALL / SKY
     final bgPaint = Paint()..color = skyColor;
-    canvas.drawRect(Rect.fromLTWH(0, 0, width, horizonY), bgPaint);
+    canvas.drawRect(Rect.fromLTWH(0, 0, width, height), bgPaint);
 
     // 2. STADIUM BLEACHERS & CHEERING AUDIENCE (IMAGE 4 CROWD ROWS)
-    _renderStadiumAudience(canvas, width, horizonY, wallColor);
+    _renderStadiumAudience(canvas, width, topBound, ringTop.dy + 8, wallColor);
+
+    // Surrounding ground
+    final groundPaint = Paint()..color = wallColor.withValues(alpha: 0.6);
+    canvas.drawRect(Rect.fromLTWH(0, ringTop.dy, width, height - ringTop.dy), groundPaint);
 
     // 3. 2.5D ISOMETRIC DIAMOND RING (IMAGE 4 & 5 ACCURATE GEOMETRY)
-    final ringTop = Offset(width * 0.5, horizonY + 22);
-    final ringLeft = Offset(width * 0.05, horizonY + (height - horizonY) * 0.52);
-    final ringRight = Offset(width * 0.95, horizonY + (height - horizonY) * 0.52);
-    final ringBottom = Offset(width * 0.5, height - 20);
-
     // Platform Apron Base (Isometric 3D Depth underneath)
     final apronHeight = 16.0;
     final apronPaint = Paint()..color = const Color(0xFF1A1C2C);
@@ -125,10 +138,10 @@ class ArenaComponent extends PositionComponent {
     canvas.drawPath(outerRingPath, outerMatPaint);
 
     // Inner Canvas Mat (Contrasting Center Diamond)
-    final innerTop = Offset(width * 0.5, ringTop.dy + 14);
-    final innerLeft = Offset(ringLeft.dx + 28, ringLeft.dy);
-    final innerRight = Offset(ringRight.dx - 28, ringRight.dy);
-    final innerBottom = Offset(width * 0.5, ringBottom.dy - 14);
+    final innerTop = Offset(arenaCenterX, ringTop.dy + 12);
+    final innerLeft = Offset(ringLeft.dx + 22, ringLeft.dy);
+    final innerRight = Offset(ringRight.dx - 22, ringRight.dy);
+    final innerBottom = Offset(arenaCenterX, ringBottom.dy - 12);
 
     final innerMatPath = Path()
       ..moveTo(innerTop.dx, innerTop.dy)
@@ -147,7 +160,7 @@ class ArenaComponent extends PositionComponent {
     canvas.drawPath(innerMatPath, borderPaint);
 
     // 4. RETRO "BASTONERO" CENTER MAT LOGO (IMAGE 4 EMULATION)
-    _renderCenterMatLogo(canvas, width * 0.5, ringTop.dy + (ringBottom.dy - ringTop.dy) * 0.44, matLogo);
+    _renderCenterMatLogo(canvas, arenaCenterX, arenaCenterY - 4, matLogo);
 
     // 5. 3-TIER RING ROPES & 4 CORNER TURNBUCKLES
     _renderIsometricRopesAndTurnbuckles(
@@ -159,13 +172,13 @@ class ArenaComponent extends PositionComponent {
     );
 
     // 6. ANIMATED IN-RING REFEREE
-    _renderReferee(canvas, width * refereeX, ringTop.dy + 25);
+    _renderReferee(canvas, arenaCenterX + (refereeX - 0.5) * 70, arenaCenterY - ringHalfH * 0.40);
 
     // 7. RINGSIDE OFFICIALS / 3 SEATED JUDGES
-    _renderRingsideJudges(canvas, width, ringBottom.dy - 6);
+    _renderRingsideJudges(canvas, width, arenaCenterX, ringBottom.dy + 14);
 
     // 8. TOP ARENA RETRO BANNER
-    _renderRetroBanner(canvas, bannerTitle, width * 0.5, 18, bannerColor);
+    _renderRetroBanner(canvas, bannerTitle, arenaCenterX, topBound + 12, bannerColor);
   }
 
   void _renderCenterMatLogo(Canvas canvas, double cx, double cy, String text) {
@@ -299,10 +312,10 @@ class ArenaComponent extends PositionComponent {
     canvas.drawRect(padRect, padBorder);
   }
 
-  void _renderStadiumAudience(Canvas canvas, double width, double horizonY, Color benchColor) {
+  void _renderStadiumAudience(Canvas canvas, double width, double topY, double bottomY, Color benchColor) {
     // Stadium Bleachers Steps
     final bench = Paint()..color = benchColor;
-    canvas.drawRect(Rect.fromLTWH(0, horizonY - 44, width, 64), bench);
+    canvas.drawRect(Rect.fromLTWH(0, topY, width, max(30.0, bottomY - topY)), bench);
 
     final crowdColors = [
       const Color(0xFFDC2626), // Red
@@ -314,11 +327,14 @@ class ArenaComponent extends PositionComponent {
       const Color(0xFF8B5CF6), // Purple
     ];
 
-    // 3 Dense Rows of Spectators (Image 4 Art Style)
-    for (int row = 0; row < 3; row++) {
-      final by = horizonY - 38 + (row * 15);
+    final crowdHeight = max(20.0, bottomY - topY - 10.0);
+    final rowCount = (crowdHeight / 16.0).floor().clamp(2, 4);
+
+    // Dense Rows of Spectators (Image 4 Art Style)
+    for (int row = 0; row < rowCount; row++) {
+      final by = topY + 6.0 + (row * 15.0);
       for (double x = 6; x < width - 10; x += 15) {
-        final bounce = sin((crowdAnimTimer * 6.5) + (x * 0.15) + (row * 1.5)) * 2.5;
+        final bounce = sin((crowdAnimTimer * 6.5) + (x * 0.15) + (row * 1.5)) * 2.0;
         final color = crowdColors[(x.toInt() + (row * 3)) % crowdColors.length];
 
         // Head
@@ -354,9 +370,8 @@ class ArenaComponent extends PositionComponent {
     }
   }
 
-  void _renderRingsideJudges(Canvas canvas, double width, double bottomY) {
-    final tableX = width * 0.65;
-    final tableY = bottomY - 6;
+  void _renderRingsideJudges(Canvas canvas, double width, double centerX, double tableY) {
+    final tableX = centerX - 44.0;
 
     // Judges Table
     final tablePaint = Paint()..color = const Color(0xFF475569);

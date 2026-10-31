@@ -212,6 +212,15 @@ class GearItem {
 
 class FighterModel {
   String name;
+  String nickname;
+  String gymName;
+  String coachName;
+  String coachTitle;
+  String coachPerk;
+  String gender;
+  int skinIndex;
+  int headbandColorIndex;
+  int hairIndex;
   int gradeLevel; // 5 = Grade 5 (Elementary, Age 11) up to 16 = College 4th Year
   int age;
   double maxHp;
@@ -231,6 +240,15 @@ class FighterModel {
 
   FighterModel({
     required this.name,
+    this.nickname = 'Bastonero',
+    this.gymName = 'Bakuran Arnis Camp',
+    this.coachName = 'Coach Kanor',
+    this.coachTitle = 'Beterano ng Purok',
+    this.coachPerk = 'Hangin Recovery +20%',
+    this.gender = 'Lalaki',
+    this.skinIndex = 0,
+    this.headbandColorIndex = 0,
+    this.hairIndex = 0,
     this.gradeLevel = 5,
     this.age = 11,
     this.maxHp = 100.0,
@@ -315,6 +333,15 @@ class FighterModel {
   // Clones
   FighterModel copyWith({
     String? name,
+    String? nickname,
+    String? gymName,
+    String? coachName,
+    String? coachTitle,
+    String? coachPerk,
+    String? gender,
+    int? skinIndex,
+    int? headbandColorIndex,
+    int? hairIndex,
     int? gradeLevel,
     int? age,
     double? maxHp,
@@ -334,6 +361,15 @@ class FighterModel {
   }) {
     return FighterModel(
       name: name ?? this.name,
+      nickname: nickname ?? this.nickname,
+      gymName: gymName ?? this.gymName,
+      coachName: coachName ?? this.coachName,
+      coachTitle: coachTitle ?? this.coachTitle,
+      coachPerk: coachPerk ?? this.coachPerk,
+      gender: gender ?? this.gender,
+      skinIndex: skinIndex ?? this.skinIndex,
+      headbandColorIndex: headbandColorIndex ?? this.headbandColorIndex,
+      hairIndex: hairIndex ?? this.hairIndex,
       gradeLevel: gradeLevel ?? this.gradeLevel,
       age: age ?? this.age,
       maxHp: maxHp ?? this.maxHp,
@@ -359,6 +395,15 @@ class FighterModel {
 
   Map<String, dynamic> toJson() => {
         'name': name,
+        'nickname': nickname,
+        'gymName': gymName,
+        'coachName': coachName,
+        'coachTitle': coachTitle,
+        'coachPerk': coachPerk,
+        'gender': gender,
+        'skinIndex': skinIndex,
+        'headbandColorIndex': headbandColorIndex,
+        'hairIndex': hairIndex,
         'gradeLevel': gradeLevel,
         'age': age,
         'maxHp': maxHp,
@@ -392,6 +437,15 @@ class FighterModel {
 
     return FighterModel(
       name: json['name'] as String? ?? 'Arnisador',
+      nickname: json['nickname'] as String? ?? 'Bastonero',
+      gymName: json['gymName'] as String? ?? 'Bakuran Arnis Camp',
+      coachName: json['coachName'] as String? ?? 'Coach Kanor',
+      coachTitle: json['coachTitle'] as String? ?? 'Beterano ng Purok',
+      coachPerk: json['coachPerk'] as String? ?? 'Hangin Recovery +20%',
+      gender: json['gender'] as String? ?? 'Lalaki',
+      skinIndex: json['skinIndex'] as int? ?? 0,
+      headbandColorIndex: json['headbandColorIndex'] as int? ?? 0,
+      hairIndex: json['hairIndex'] as int? ?? 0,
       gradeLevel: json['gradeLevel'] as int? ?? 5,
       age: json['age'] as int? ?? 11,
       maxHp: (json['maxHp'] as num?)?.toDouble() ?? 100.0,
