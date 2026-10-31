@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../providers/game_state_provider.dart';
 import '../retro_ui.dart';
+import 'estudyante_modal.dart';
 
 class TrainingModal extends StatelessWidget {
   final GameStateProvider gameState;
@@ -50,6 +51,35 @@ class TrainingModal extends StatelessWidget {
                       style: const TextStyle(color: Color(0xFF4ADE80), fontSize: 10, fontFamily: 'monospace'),
                     ),
                 ],
+              ),
+            ),
+            const SizedBox(height: 6),
+            InkWell(
+              onTap: () {
+                Navigator.of(context).pop();
+                showDialog(
+                  context: context,
+                  builder: (ctx) => EstudyanteModal(gameState: gameState),
+                );
+              },
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0284C7),
+                  border: Border.all(color: Colors.white, width: 1),
+                ),
+                child: Center(
+                  child: Text(
+                    'BUKSAN ANG BUONG ROSTER NG MGA ESTUDYANTE (${gameState.students.length})',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 7.5,
+                      fontFamily: 'Silkscreen',
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 10),

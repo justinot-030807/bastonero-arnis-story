@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../providers/game_state_provider.dart';
+import '../../domain/models/student.dart';
 import '../../models/tournament_model.dart';
+import '../../providers/game_state_provider.dart';
 import '../retro_ui.dart';
 
 class TournamentModal extends StatefulWidget {
@@ -22,26 +23,27 @@ class TournamentModal extends StatefulWidget {
 }
 
 class _TournamentModalState extends State<TournamentModal> {
-  int _selectedTab = 0; // 0 = School Varsity, 1 = Street Track
+  int _selectedTab = 0; // 0 = Community Track, 1 = School Varsity Track
 
   @override
   Widget build(BuildContext context) {
-    final fighter = widget.gameState.fighter;
-    final currentMonth = widget.gameState.month;
+    final state = widget.gameState;
+    final currentStudent = state.activeStudent;
+    final currentMonth = state.month;
 
-    final schoolTournaments = widget.gameState.tournaments
-        .where((t) => t.track == TournamentTrack.schoolTrack)
-        .toList();
-    final streetTournaments = widget.gameState.tournaments
+    final communityTournaments = state.tournaments
         .where((t) => t.track == TournamentTrack.streetTrack)
         .toList();
+    final schoolTournaments = state.tournaments
+        .where((t) => t.track == TournamentTrack.schoolTrack)
+        .toList();
 
-    final activeList = _selectedTab == 0 ? schoolTournaments : streetTournaments;
+    final activeList = _selectedTab == 0 ? communityTournaments : schoolTournaments;
 
     return Center(
       child: RetroBox(
         width: 530,
-        height: MediaQuery.of(context).size.height * 0.90,
+        height: MediaQuery.of(context).size.height * 0.92,
         title: 'PALIGSAHAN AT TOURNAMENTS',
         titleTrailing: IconButton(
           icon: const Icon(Icons.close, color: Colors.white, size: 18),
@@ -51,24 +53,142 @@ class _TournamentModalState extends State<TournamentModal> {
         ),
         backgroundColor: const Color(0xFF0F172A),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // TRACK SWITCH TABS
+            // 1. STUDENT REPRESENTATIVE SELECTOR
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E293B),
+                border: Border.all(color: const Color(0xFF475569)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'REPRESENTATIVE ARNISADOR:',
+                        style: TextStyle(
+                          color: Color(0xFFFDE047),
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                      Text(
+                        'Scholarship: ${state.scholarshipPoints} PTS',
+                        style: const TextStyle(
+                          color: Color(0xFF38BDF8),
+                          fontSize: 8.5,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: state.students.map((student) {
+                        final isSelected = student.id == currentStudent.id;
+                        final isEligible = student.isVarsityEligible && student.status != StudentStatus.injured;
+
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 6),
+                          child: InkWell(
+                            onTap: () {
+                              state.setActiveStudent(student.id);
+                              setState(() {});
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: isSelected ? const Color(0xFF0284C7) : const Color(0xFF0F172A),
+                                border: Border.all(
+                                  color: isSelected ? const Color(0xFFFDE047) : const Color(0xFF334155),
+                                  width: isSelected ? 1.5 : 1.0,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  PixelSpriteWidget(
+                                    matrix: isSelected
+                                        ? PixelArtCatalog.bayaniPortrait
+                                        : PixelArtCatalog.lorenzoPortrait,
+                                    pixelSize: 1.0,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        student.name,
+                                        style: TextStyle(
+                                          color: isSelected ? Colors.white : const Color(0xFFCBD5E1),
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.bold,
+                                          fontFamily: 'monospace',
+                                        ),
+                                      ),
+                                      Text(
+                                        'G${student.grade} (${student.gradePercent.toStringAsFixed(1)}%) ${isEligible ? "[PASADO]" : "[BAGSAK]"}',
+                                        style: TextStyle(
+                                          color: isEligible ? const Color(0xFF4ADE80) : const Color(0xFFEF4444),
+                                          fontSize: 7.5,
+                                          fontFamily: 'monospace',
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+
+            // 2. TRACK SWITCH TABS
             Row(
               children: [
                 Expanded(
                   child: RetroButton(
-                    height: 40,
-                    color: _selectedTab == 0 ? const Color(0xFF0284C7) : const Color(0xFF334155),
+                    height: 38,
+                    color: _selectedTab == 0 ? const Color(0xFFE6482E) : const Color(0xFF334155),
                     onTap: () => setState(() => _selectedTab = 0),
+                    child: const Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text('KOMUNIDAD (COMMUNITY TRACK)', style: TextStyle(color: Colors.white, fontSize: 9.5, fontWeight: FontWeight.bold, fontFamily: 'monospace')),
+                        Text('Walang Grado Check - Premyong Pera', style: TextStyle(color: Color(0xFFFDE047), fontSize: 7.5, fontFamily: 'monospace')),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: RetroButton(
+                    height: 38,
+                    color: _selectedTab == 1 ? const Color(0xFF0284C7) : const Color(0xFF334155),
+                    onTap: () => setState(() => _selectedTab = 1),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text('SCHOOL VARSITY TRACK', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold, fontFamily: 'monospace')),
+                        const Text('PAARALAN (SCHOOL VARSITY)', style: TextStyle(color: Colors.white, fontSize: 9.5, fontWeight: FontWeight.bold, fontFamily: 'monospace')),
                         Text(
-                          'Grado: ${fighter.academics.toStringAsFixed(1)} (Req >= 80)',
+                          'Grado Req >= 75% | Scholarship PTS',
                           style: TextStyle(
-                            color: fighter.isEligibleForSchoolVarsity ? const Color(0xFF4ADE80) : const Color(0xFFDC2626),
-                            fontSize: 8,
+                            color: currentStudent.isVarsityEligible ? const Color(0xFF4ADE80) : const Color(0xFFDC2626),
+                            fontSize: 7.5,
                             fontFamily: 'monospace',
                           ),
                         ),
@@ -76,35 +196,26 @@ class _TournamentModalState extends State<TournamentModal> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: RetroButton(
-                    height: 40,
-                    color: _selectedTab == 1 ? const Color(0xFFE6482E) : const Color(0xFF334155),
-                    onTap: () => setState(() => _selectedTab = 1),
-                    child: const Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text('STREET & COMMUNITY TRACK', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold, fontFamily: 'monospace')),
-                        Text('Walang Grado Check - Pera (P)', style: TextStyle(color: Color(0xFFFDE047), fontSize: 8, fontFamily: 'monospace')),
-                      ],
-                    ),
-                  ),
-                ),
               ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
 
-            // TOURNAMENTS LIST
+            // 3. TOURNAMENTS LIST
             Expanded(
               child: ListView.builder(
                 itemCount: activeList.length,
                 itemBuilder: (context, index) {
                   final t = activeList[index];
                   final isSchool = t.track == TournamentTrack.schoolTrack;
-                  final isGradeOk = fighter.isEligibleForSchoolVarsity;
+
+                  // Eligibility checks
+                  final hasGrades = isSchool ? currentStudent.isVarsityEligible : true;
+                  final isHealthy = currentStudent.status != StudentStatus.injured;
+                  final hasRankFame = state.prestige >= (t.prestigeReward * 5); // soft threshold
+                  final canAfford = state.pesos >= (t.entryFee + t.travelCost);
                   final isMonthScheduled = isSchool ? (t.scheduledMonth == currentMonth) : true;
-                  final canEnter = isSchool ? (isGradeOk && isMonthScheduled) : true;
+
+                  final canEnter = hasGrades && isHealthy && canAfford && hasRankFame;
 
                   final activeOpponent = t.bracket?.activePlayerMatch?.fighter2Data ??
                       (t.rounds.isNotEmpty ? t.rounds.first : null);
@@ -143,25 +254,78 @@ class _TournamentModalState extends State<TournamentModal> {
                               padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                               color: canEnter ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
                               child: Text(
-                                canEnter
-                                    ? (t.isCompleted ? '[KAMPEON]' : '[BUKAS]')
-                                    : (!isGradeOk ? '[SUSPINDIDO <80]' : '[SKED M${t.scheduledMonth}]'),
-                                style: const TextStyle(color: Colors.white, fontSize: 8, fontFamily: 'monospace', fontWeight: FontWeight.bold),
+                                t.isCompleted
+                                    ? '[KAMPEON]'
+                                    : (!hasGrades
+                                        ? '[BAGSAK <75%]'
+                                        : (!canAfford
+                                            ? '[KULANG PERA]'
+                                            : (!hasRankFame
+                                                ? '[KULANG FAME]'
+                                                : (!isMonthScheduled
+                                                    ? '[SKED M${t.scheduledMonth}]'
+                                                    : '[BUKAS]')))),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 8,
+                                  fontFamily: 'monospace',
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 3),
-                        Text(t.description, style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 9)),
+                        Text(
+                          t.description,
+                          style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 8.5),
+                        ),
                         const SizedBox(height: 6),
+
+                        // Financial & Reward Stats Row
                         Row(
                           children: [
-                            Text('Premyo: P${t.prizeMoney}', style: const TextStyle(color: Color(0xFFFDE047), fontSize: 10, fontFamily: 'monospace', fontWeight: FontWeight.bold)),
-                            const SizedBox(width: 12),
-                            Text('Prestige: +${t.prestigeReward} PTS', style: const TextStyle(color: Color(0xFF38BDF8), fontSize: 10, fontFamily: 'monospace', fontWeight: FontWeight.bold)),
+                            Text(
+                              'Premyo: P${t.prizeMoney}',
+                              style: const TextStyle(
+                                color: Color(0xFFFDE047),
+                                fontSize: 9.5,
+                                fontFamily: 'monospace',
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Prestige: +${t.prestigeReward}',
+                              style: const TextStyle(
+                                color: Color(0xFF38BDF8),
+                                fontSize: 9.5,
+                                fontFamily: 'monospace',
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            if (t.scholarshipPoints > 0) ...[
+                              const SizedBox(width: 8),
+                              Text(
+                                'Scholar: +${t.scholarshipPoints}',
+                                style: const TextStyle(
+                                  color: Color(0xFF4ADE80),
+                                  fontSize: 9.5,
+                                  fontFamily: 'monospace',
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
                             const Spacer(),
-                            if (t.entryFee > 0)
-                              Text('Fee: P${t.entryFee}', style: const TextStyle(color: Color(0xFFE6482E), fontSize: 9, fontFamily: 'monospace')),
+                            if (t.entryFee > 0 || t.travelCost > 0)
+                              Text(
+                                'Gastos: P${t.entryFee + t.travelCost}',
+                                style: const TextStyle(
+                                  color: Color(0xFFF87171),
+                                  fontSize: 8.5,
+                                  fontFamily: 'monospace',
+                                ),
+                              ),
                           ],
                         ),
                         const SizedBox(height: 6),
@@ -172,7 +336,12 @@ class _TournamentModalState extends State<TournamentModal> {
                             children: [
                               Text(
                                 'Katunggali: ${activeOpponent.name}',
-                                style: const TextStyle(color: Color(0xFFCBD5E1), fontSize: 9, fontFamily: 'monospace', fontStyle: FontStyle.italic),
+                                style: const TextStyle(
+                                  color: Color(0xFFCBD5E1),
+                                  fontSize: 9,
+                                  fontFamily: 'monospace',
+                                  fontStyle: FontStyle.italic,
+                                ),
                               ),
                               const SizedBox(width: 8),
                               if (h2h != null)
@@ -181,14 +350,18 @@ class _TournamentModalState extends State<TournamentModal> {
                                   color: const Color(0xFF0F172A),
                                   child: Text(
                                     'H2H: ${h2h.recordString}',
-                                    style: const TextStyle(color: Color(0xFFFDE047), fontSize: 8, fontFamily: 'monospace'),
+                                    style: const TextStyle(
+                                      color: Color(0xFFFDE047),
+                                      fontSize: 8,
+                                      fontFamily: 'monospace',
+                                    ),
                                   ),
                                 ),
                             ],
                           ),
                         const SizedBox(height: 8),
 
-                        // BUTTONS: BRACKET LADDER & SURIIN (ANALYSIS) & LABAN
+                        // ACTION BUTTONS: BRACKETS & SURIIN & LABAN
                         Row(
                           children: [
                             // Bracket Ladder Button

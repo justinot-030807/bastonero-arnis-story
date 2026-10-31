@@ -23,7 +23,7 @@ class RetroPalette {
   static const Color creamWhite = Color(0xFFF4ECE1);
   static const Color pureWhite = Color(0xFFFFFFFF);
 
-  // Map of characters used in pixel art matrices
+  // Map of characters used in pixel art matrices (fallback legacy support)
   static Color colorForChar(String char) {
     switch (char) {
       case 'X':
@@ -71,7 +71,117 @@ class RetroPalette {
   }
 }
 
-/// CustomPainter that renders a `List<String>` pixel matrix with crisp edges
+class _TokenInfo {
+  final String label;
+  final Color color;
+  final double width;
+  final double height;
+  final String assetPath;
+
+  const _TokenInfo({
+    required this.label,
+    required this.color,
+    this.width = 16.0,
+    this.height = 16.0,
+    this.assetPath = '',
+  });
+}
+
+_TokenInfo _resolveToken(String token) {
+  switch (token) {
+    case 'PORTRAIT:BAYANI':
+      return const _TokenInfo(label: 'BAYANI', color: Color(0xFF38BDF8), width: 24, height: 24, assetPath: 'portraits/bayani.png');
+    case 'PORTRAIT:BERTO':
+      return const _TokenInfo(label: 'BERTO', color: Color(0xFFDC2626), width: 24, height: 24, assetPath: 'portraits/berto.png');
+    case 'PORTRAIT:LORENZO':
+      return const _TokenInfo(label: 'LORENZO', color: Color(0xFF8B5CF6), width: 24, height: 24, assetPath: 'portraits/lorenzo.png');
+    case 'PORTRAIT:KANOR':
+      return const _TokenInfo(label: 'KANOR', color: Color(0xFFF4B41B), width: 24, height: 24, assetPath: 'portraits/kanor.png');
+    case 'ICON:SANAY':
+      return const _TokenInfo(label: 'SANAY', color: Color(0xFF38BDF8), assetPath: 'ui/icon_sanay.png');
+    case 'ICON:ARAL':
+      return const _TokenInfo(label: 'ARAL', color: Color(0xFF4ADE80), assetPath: 'ui/icon_aral.png');
+    case 'ICON:HINGA':
+      return const _TokenInfo(label: 'HINGA', color: Color(0xFF60A5FA), assetPath: 'ui/icon_hinga.png');
+    case 'ICON:SPAR':
+      return const _TokenInfo(label: 'SPAR', color: Color(0xFFF4B41B), assetPath: 'ui/icon_spar.png');
+    case 'ICON:LABAN':
+      return const _TokenInfo(label: 'LABAN', color: Color(0xFFDC2626), assetPath: 'ui/icon_laban.png');
+    case 'ICON:TIANGGE':
+      return const _TokenInfo(label: 'TIANGGE', color: Color(0xFFE6482E), assetPath: 'ui/icon_tiangge.png');
+    case 'ICON:SET':
+      return const _TokenInfo(label: 'SET', color: Color(0xFF8B9BB4), assetPath: 'ui/icon_settings.png');
+    case 'ICON:P':
+      return const _TokenInfo(label: 'P', color: Color(0xFFF4B41B), width: 12, height: 12, assetPath: 'ui/peso.png');
+    case 'ICON:FAME':
+      return const _TokenInfo(label: 'FAME', color: Color(0xFFFDE047), width: 12, height: 12, assetPath: 'ui/fame.png');
+    case 'ICON:WIND':
+      return const _TokenInfo(label: 'STA', color: Color(0xFF60A5FA), width: 12, height: 12, assetPath: 'ui/stamina.png');
+    case 'ICON:CUP':
+      return const _TokenInfo(label: 'CUP', color: Color(0xFFF4B41B), width: 14, height: 14, assetPath: 'ui/trophy.png');
+    case 'ICON:RING':
+      return const _TokenInfo(label: 'RING', color: Color(0xFFDC2626), width: 14, height: 14, assetPath: 'ui/ring.png');
+    case 'ICON:HP':
+      return const _TokenInfo(label: 'HP', color: Color(0xFFDC2626), width: 12, height: 12, assetPath: 'ui/hp.png');
+    case 'ICON:STA':
+      return const _TokenInfo(label: 'STA', color: Color(0xFFFDE047), width: 12, height: 12, assetPath: 'ui/stamina.png');
+    case 'ICON:STK':
+      return const _TokenInfo(label: 'DIS', color: Color(0xFFF4B41B), width: 12, height: 12, assetPath: 'ui/stick.png');
+    case 'ICON:POW':
+      return const _TokenInfo(label: 'LAK', color: Color(0xFFDC2626), width: 12, height: 12, assetPath: 'ui/power.png');
+    case 'ICON:DEF':
+      return const _TokenInfo(label: 'SAL', color: Color(0xFF4ADE80), width: 12, height: 12, assetPath: 'ui/defense.png');
+    case 'ICON:SPD':
+      return const _TokenInfo(label: 'BIL', color: Color(0xFF38BDF8), width: 12, height: 12, assetPath: 'ui/speed.png');
+    case 'ICON:SHIELD':
+      return const _TokenInfo(label: 'SHLD', color: Color(0xFF4ADE80), width: 12, height: 12, assetPath: 'ui/shield.png');
+    case 'GEAR:SHOE':
+      return const _TokenInfo(label: 'SHOE', color: Color(0xFF38BDF8), width: 16, height: 16, assetPath: 'equipment/shoe.png');
+    case 'GEAR:HEAD':
+      return const _TokenInfo(label: 'HEAD', color: Color(0xFFDC2626), width: 16, height: 16, assetPath: 'equipment/headgear.png');
+    case 'GEAR:ARMOR':
+      return const _TokenInfo(label: 'ARMOR', color: Color(0xFF1E293B), width: 16, height: 16, assetPath: 'equipment/armor.png');
+    case 'WEAPON:BAHI':
+      return const _TokenInfo(label: 'BAHI', color: Color(0xFF8C532B), width: 16, height: 16, assetPath: 'equipment/bahi.png');
+    case 'WEAPON:KMGNG':
+      return const _TokenInfo(label: 'KMGNG', color: Color(0xFF1A1C2C), width: 16, height: 16, assetPath: 'equipment/kamagong.png');
+    case 'WEAPON:PADD':
+      return const _TokenInfo(label: 'PADD', color: Color(0xFFDC2626), width: 16, height: 16, assetPath: 'equipment/padded.png');
+    case 'WEAPON:YNTK':
+      return const _TokenInfo(label: 'YNTK', color: Color(0xFFF2B880), width: 16, height: 16, assetPath: 'equipment/yantok.png');
+    case 'WEAPON:DAGA':
+      return const _TokenInfo(label: 'DAGA', color: Color(0xFF8B9BB4), width: 16, height: 16, assetPath: 'equipment/daga.png');
+    case 'FOOD:BUKO':
+      return const _TokenInfo(label: 'BUKO', color: Color(0xFF4ADE80), width: 16, height: 16, assetPath: 'equipment/buko.png');
+    case 'FOOD:SABA':
+      return const _TokenInfo(label: 'SABA', color: Color(0xFFFDE047), width: 16, height: 16, assetPath: 'equipment/saba.png');
+    case 'FOOD:TAHO':
+      return const _TokenInfo(label: 'TAHO', color: Color(0xFFF4ECE1), width: 16, height: 16, assetPath: 'equipment/taho.png');
+    case 'FOOD:ADBNG':
+      return const _TokenInfo(label: 'ADBNG', color: Color(0xFF8C532B), width: 16, height: 16, assetPath: 'equipment/adobo.png');
+    case 'FOOD:BALUT':
+      return const _TokenInfo(label: 'BALUT', color: Color(0xFF8B9BB4), width: 16, height: 16, assetPath: 'equipment/balut.png');
+    case 'FOOD:MNGGA':
+      return const _TokenInfo(label: 'MNGGA', color: Color(0xFFF4B41B), width: 16, height: 16, assetPath: 'equipment/mangga.png');
+    case 'CHAR:BAYANI':
+    case 'CHAR:PUNCH':
+    case 'CHAR:SIT':
+    case 'CHAR:STEP':
+    case 'CHAR:KO':
+    case 'CHAR:VIC':
+      return const _TokenInfo(label: 'BAYANI', color: Color(0xFF38BDF8), width: 20, height: 26, assetPath: 'characters/bayani.png');
+    case 'CHAR:OPP':
+    case 'CHAR:OPP_STEP':
+    case 'CHAR:OPP_VIC':
+      return const _TokenInfo(label: 'KALABAN', color: Color(0xFFDC2626), width: 20, height: 26, assetPath: 'characters/opponent.png');
+    case 'VEHICLE:TRI':
+      return const _TokenInfo(label: 'TRIKE', color: Color(0xFFDC2626), width: 28, height: 18, assetPath: 'camp/vehicles/tricycle.png');
+    default:
+      return const _TokenInfo(label: 'PIX', color: Color(0xFF38BDF8));
+  }
+}
+
+/// CustomPainter that renders crisp pixel badges / tokens
 class PixelMatrixPainter extends CustomPainter {
   final List<String> matrix;
   final double pixelSize;
@@ -80,24 +190,71 @@ class PixelMatrixPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..isAntiAlias = false
-      ..filterQuality = FilterQuality.none
-      ..style = PaintingStyle.fill;
+    if (matrix.isEmpty) return;
+    final token = matrix.first;
 
-    for (int y = 0; y < matrix.length; y++) {
-      final row = matrix[y];
-      for (int x = 0; x < row.length; x++) {
-        final char = row[x];
-        if (char == '.') continue;
-        final color = RetroPalette.colorForChar(char);
-        paint.color = color;
-        canvas.drawRect(
-          Rect.fromLTWH(x * pixelSize, y * pixelSize, pixelSize, pixelSize),
-          paint,
-        );
+    // Legacy raw ASCII row fallback (if raw ASCII character matrix is passed)
+    if (token.length > 8 && (token.contains('X') || token.contains('.'))) {
+      final paint = Paint()
+        ..isAntiAlias = false
+        ..filterQuality = FilterQuality.none
+        ..style = PaintingStyle.fill;
+
+      for (int y = 0; y < matrix.length; y++) {
+        final row = matrix[y];
+        for (int x = 0; x < row.length; x++) {
+          final char = row[x];
+          if (char == '.') continue;
+          paint.color = RetroPalette.colorForChar(char);
+          canvas.drawRect(
+            Rect.fromLTWH(x * pixelSize, y * pixelSize, pixelSize, pixelSize),
+            paint,
+          );
+        }
       }
+      return;
     }
+
+    // High-visibility token placeholder
+    final info = _resolveToken(token);
+    final outlinePaint = Paint()
+      ..color = const Color(0xFF1A1C2C)
+      ..style = PaintingStyle.fill
+      ..isAntiAlias = false;
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), outlinePaint);
+
+    final fillPaint = Paint()
+      ..color = info.color
+      ..style = PaintingStyle.fill
+      ..isAntiAlias = false;
+    canvas.drawRect(Rect.fromLTWH(1, 1, size.width - 2, size.height - 2), fillPaint);
+
+    final highlightPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.3)
+      ..style = PaintingStyle.fill
+      ..isAntiAlias = false;
+    canvas.drawRect(Rect.fromLTWH(1, 1, size.width - 2, 2), highlightPaint);
+
+    final tp = TextPainter(
+      text: TextSpan(
+        text: info.label,
+        style: const TextStyle(
+          color: Color(0xFF1A1C2C),
+          fontSize: 7.0,
+          fontWeight: FontWeight.bold,
+          fontFamily: 'Silkscreen',
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout(maxWidth: size.width);
+
+    tp.paint(
+      canvas,
+      Offset(
+        (size.width - tp.width) / 2,
+        (size.height - tp.height) / 2,
+      ),
+    );
   }
 
   @override
@@ -106,22 +263,29 @@ class PixelMatrixPainter extends CustomPainter {
   }
 }
 
-/// Widget for rendering 16x16 or 24x24 pixel sprites
+/// Widget for rendering 16x16 or 24x24 pixel sprites / placeholders
 class PixelSpriteWidget extends StatelessWidget {
   final List<String> matrix;
   final double pixelSize;
+  final String? label;
+  final Color? color;
 
   const PixelSpriteWidget({
     super.key,
     required this.matrix,
     this.pixelSize = 2.0,
+    this.label,
+    this.color,
   });
 
   @override
   Widget build(BuildContext context) {
     if (matrix.isEmpty) return const SizedBox.shrink();
-    final width = matrix[0].length * pixelSize;
-    final height = matrix.length * pixelSize;
+    final token = matrix.first;
+    final info = _resolveToken(token);
+
+    final width = info.width * pixelSize;
+    final height = info.height * pixelSize;
 
     return CustomPaint(
       size: Size(width, height),
@@ -130,863 +294,66 @@ class PixelSpriteWidget extends StatelessWidget {
   }
 }
 
-/// Library of custom pixel-art matrices (Zero Emojis!)
+/// Catalog of pixel asset tokens (Zero procedural ASCII matrices!)
 class PixelArtCatalog {
-  // 1. CHARACTER PORTRAITS (16x16)
-  static const List<String> bayaniPortrait = [
-    '.....XXXXX......',
-    '....XKKKKKX.....',
-    '...XKKKKKKKX....',
-    '..XRRRRRRRRRX...',
-    '..XR!RRRRR!RX...',
-    '..XCCCCCCCCCX...',
-    '..XCXCXXCXCXC...',
-    '..XCCCCCCCCCX...',
-    '..XCCXCCCXCCX...',
-    '..XCCXXXXXCCX...',
-    '...XCCCCCCCX....',
-    '....XXXXXXX.....',
-    '..XXXXXXXXXXX...',
-    '.XNNNNNNNNNNNX..',
-    '.XNNNNNNNNNNNX..',
-    '.XXXXXXXXXXXXX..',
-  ];
+  // 1. CHARACTER PORTRAITS
+  static const List<String> bayaniPortrait = ['PORTRAIT:BAYANI'];
+  static const List<String> bertoPortrait = ['PORTRAIT:BERTO'];
+  static const List<String> lorenzoPortrait = ['PORTRAIT:LORENZO'];
+  static const List<String> coachKanorPortrait = ['PORTRAIT:KANOR'];
 
-  static const List<String> bertoPortrait = [
-    '.....XXXXX......',
-    '....XmmmmmX.....',
-    '...XmmmmmmmX....',
-    '..XmmmmmmmmmX...',
-    '..XCCCCCCCCCX...',
-    '..XCXXCCCXXCX...',
-    '..XCXCCCCXCCX...',
-    '..XCCCCCCCCCX...',
-    '..XCCXMMMXCCX...',
-    '..XCCXXXXXCCX...',
-    '...XCCCCCCCX....',
-    '....XXXXXXX.....',
-    '..XXXXXXXXXXX...',
-    '.XbbbbbbbbbbX...',
-    '.XbbbbbbbbbbX...',
-    '.XXXXXXXXXXXX...',
-  ];
+  // 2. FOOD & NUTRITION
+  static const List<String> bukoJuice = ['FOOD:BUKO'];
+  static const List<String> nilagangSaba = ['FOOD:SABA'];
+  static const List<String> taho = ['FOOD:TAHO'];
+  static const List<String> adobongManok = ['FOOD:ADBNG'];
+  static const List<String> balut = ['FOOD:BALUT'];
+  static const List<String> hinogNaMangga = ['FOOD:MNGGA'];
 
-  static const List<String> lorenzoPortrait = [
-    '.....XXXXX......',
-    '....XYYYYYX.....',
-    '...XYYYYYYYX....',
-    '..XYYYYYYYYYX...',
-    '..X!WWWWWWW!X...',
-    '..XCCCCCCCCCX...',
-    '..XCXXCCCXXCX...',
-    '..XCCCCCCCCCX...',
-    '..XCCCWWWCCCX...',
-    '..XCCXXXXXCCX...',
-    '...XCCCCCCCX....',
-    '....XXXXXXX.....',
-    '..XXXXXXXXXXX...',
-    '.XSSSSSSSSSSX...',
-    '.XSSSSSSSSSSX...',
-    '.XXXXXXXXXXXX...',
-  ];
+  // 3. WEAPONS & GEAR
+  static const List<String> yantokStick = ['WEAPON:YNTK'];
+  static const List<String> bahiStick = ['WEAPON:BAHI'];
+  static const List<String> kamagongStick = ['WEAPON:KMGNG'];
+  static const List<String> paddedStick = ['WEAPON:PADD'];
+  static const List<String> daggerDaga = ['WEAPON:DAGA'];
+  static const List<String> gearHeadgear = ['GEAR:HEAD'];
+  static const List<String> gearArmor = ['GEAR:ARMOR'];
+  static const List<String> gearShoes = ['GEAR:SHOE'];
 
-  static const List<String> coachKanorPortrait = [
-    '.....XXXXX......',
-    '....XSSSSSX.....',
-    '...XSSSSSSSX....',
-    '..XSSSSSSSSSX...',
-    '..XWWWWWWWWWX...',
-    '..XCCCCCCCCCX...',
-    '..XCXXCCCXXCX...',
-    '..XCCCCCCCCCX...',
-    '..XCSSSSSSSCX...',
-    '..XCXXXXXXXXX...',
-    '...XCCCCCCCX....',
-    '....XXXXXXX.....',
-    '..XXXXXXXXXXX...',
-    '.XggXXXXXXXXX...',
-    '.XggggggggggX...',
-    '.XXXXXXXXXXXX...',
-  ];
+  // 4. MAIN NAVIGATION ICONS
+  static const List<String> iconSanay = ['ICON:SANAY'];
+  static const List<String> iconAral = ['ICON:ARAL'];
+  static const List<String> iconHinga = ['ICON:HINGA'];
+  static const List<String> iconSpar = ['ICON:SPAR'];
+  static const List<String> iconLaban = ['ICON:LABAN'];
+  static const List<String> iconTiangge = ['ICON:TIANGGE'];
+  static const List<String> iconSettings = ['ICON:SET'];
 
-  // 2. FOOD & NUTRITION ITEMS (16x16)
-  static const List<String> bukoJuice = [
-    '........Y.......',
-    '.......Y........',
-    '......YY........',
-    '....XXXXXX......',
-    '...XGGGGGGX.....',
-    '..XGGWWWWGGX....',
-    '..XGWWWWWWGX....',
-    '.XGGWWWWWWGGX...',
-    '.XGGWWWWWWGGX...',
-    '.XGGWWWWWWGGX...',
-    '..XGGWWWWGGX....',
-    '..XGGGGGGGGX....',
-    '...XGGGGGGX.....',
-    '....XXXXXX......',
-    '................',
-    '................',
-  ];
+  // 5. MINI STAT & CURRENCY ICONS
+  static const List<String> miniHeart = ['ICON:HP'];
+  static const List<String> miniWind = ['ICON:WIND'];
+  static const List<String> miniPeso = ['ICON:P'];
+  static const List<String> miniPrestige = ['ICON:FAME'];
+  static const List<String> miniShield = ['ICON:SHIELD'];
+  static const List<String> miniLightning = ['ICON:STA'];
+  static const List<String> miniMuscle = ['ICON:POW'];
+  static const List<String> miniShoe = ['ICON:SPD'];
+  static const List<String> miniTrunks = ['ICON:DEF'];
+  static const List<String> miniBastonIcon = ['ICON:STK'];
+  static const List<String> miniRing = ['ICON:RING'];
+  static const List<String> miniTrophy = ['ICON:CUP'];
 
-  static const List<String> nilagangSaba = [
-    '................',
-    '.....XXXX.......',
-    '....XYYYYX......',
-    '...XYYYYYYX.....',
-    '..XYYYYYYYYX....',
-    '.XYYYYYYYYYYX...',
-    '.XYWWWWWWWWYX...',
-    '.XYWWWWWWWWYX...',
-    '.XYYYYYYYYYYX...',
-    '..XYYYYYYYYX....',
-    '...XYYYYYYX.....',
-    '....XYYYYX......',
-    '.....XMMX.......',
-    '......XX........',
-    '................',
-    '................',
-  ];
-
-  static const List<String> taho = [
-    '.....XXXX.......',
-    '....XSSSSX......',
-    '....XSSSSX......',
-    '...XXXXXXXX.....',
-    '..XWWWWWWWWX....',
-    '..XWWMMMMWWX....',
-    '.XWWMMMMMMWWX...',
-    '.XWWWWWWWWWWX...',
-    '.XWWMMMMMMWWX...',
-    '.XWWWWWWWWWWX...',
-    '..XWWMMMMWWX....',
-    '..XWWWWWWWWX....',
-    '...XXXXXXXX.....',
-    '....XMMMMX......',
-    '.....XXXX.......',
-    '................',
-  ];
-
-  static const List<String> adobongManok = [
-    '................',
-    '.....XXXXX......',
-    '....XMMMMMX.....',
-    '...XMMMMMMMX....',
-    '..XMMMMMMMMMX...',
-    '.XMMMMMMMMMMMX..',
-    '.XMMWWWWWWWMMX..',
-    '.XMMWWWWWWWMMX..',
-    '.XMMMMMMMMMMMX..',
-    '..XMMMMMMMMMX...',
-    '...XMMMMMMMX....',
-    '....XMMMMMX.....',
-    '.....XXXXX......',
-    '....XSSSSSSX....',
-    '...XXXXXXXXXX...',
-    '................',
-  ];
-
-  static const List<String> balut = [
-    '......XXXX......',
-    '....XXWWWWXX....',
-    '...XWWWWWWWWX...',
-    '..XWWWWWWWWWWX..',
-    '..XWWWWWWWWWWX..',
-    '.XWWWWWWWWWWWWX.',
-    '.XWWWWYYWWWWWWX.',
-    '.XWWWWYYWWWWWWX.',
-    '.XWWWWWWWWWWWWX.',
-    '..XWWWWWWWWWWX..',
-    '..XWWWWWWWWWWX..',
-    '...XWWWWWWWWX...',
-    '....XXWWWWXX....',
-    '.....XXXXXX.....',
-    '...XMMMMMMMMX...',
-    '...XXXXXXXXXX...',
-  ];
-
-  static const List<String> hinogNaMangga = [
-    '......XX........',
-    '.....XgX........',
-    '....XggX........',
-    '...XXYYXX.......',
-    '..XYYYYYYX......',
-    '.XYYYYYYYYX.....',
-    '.XYYYYYYYYYX....',
-    '.XYYYYYYYYYX....',
-    '.XYYYYYYYYYX....',
-    '..XYYYYYYYYX....',
-    '..XYYYYYYYX.....',
-    '...XYYYYYX......',
-    '....XYYYX.......',
-    '.....XYX........',
-    '......X.........',
-    '................',
-  ];
-
-  // 3. WEAPONS & GEAR (16x16)
-  static const List<String> yantokStick = [
-    '..............XX',
-    '.............XMX',
-    '............XMYX',
-    '...........XMMX.',
-    '..........XMYX..',
-    '.........XMMX...',
-    '........XMYX....',
-    '.......XMMX.....',
-    '......XMYX......',
-    '.....XMMX.......',
-    '....XMYX........',
-    '...XMMX.........',
-    '..XMYX..........',
-    '.XMMX...........',
-    'XMMX............',
-    'XX..............',
-  ];
-
-  static const List<String> bahiStick = [
-    '..............XX',
-    '.............XmX',
-    '............XmmX',
-    '...........XmMX.',
-    '..........XmmX..',
-    '.........XmMX...',
-    '........XmmX....',
-    '.......XmMX.....',
-    '......XmmX......',
-    '.....XmMX.......',
-    '....XmmX........',
-    '...XmMX.........',
-    '..XmmX..........',
-    '.XmMX...........',
-    'XmmX............',
-    'XX..............',
-  ];
-
-  static const List<String> kamagongStick = [
-    '..............XX',
-    '.............XKX',
-    '............XKKX',
-    '...........XKKX.',
-    '..........XKKX..',
-    '.........XKKX...',
-    '........XKKX....',
-    '.......XKKX.....',
-    '......XKKX......',
-    '.....XKKX.......',
-    '....XKKX........',
-    '...XKKX.........',
-    '..XKKX..........',
-    '.XKKX...........',
-    'XKKX............',
-    'XX..............',
-  ];
-
-  static const List<String> paddedStick = [
-    '..............XX',
-    '.............XRX',
-    '............XRRX',
-    '...........XR!X.',
-    '..........XRRX..',
-    '.........XR!X...',
-    '........XRRX....',
-    '.......XR!X.....',
-    '......XRRX......',
-    '.....XR!X.......',
-    '....XRRX........',
-    '...XWWWX........',
-    '..XWXXWX........',
-    '.XWWWWX.........',
-    'XWXXWX..........',
-    'XX..............',
-  ];
-
-  static const List<String> daggerDaga = [
-    '............XX..',
-    '...........X!X..',
-    '..........X!SX..',
-    '.........X!SX...',
-    '........X!SX....',
-    '.......X!SX.....',
-    '..XXXXX!SX......',
-    '.XMMMMM!XXXXX...',
-    'XMMMMMMMMMMMX...',
-    '.XMMMMMXXXXX....',
-    '..XXXXX.........',
-    '................',
-    '................',
-    '................',
-    '................',
-    '................',
-  ];
-
-  static const List<String> gearHeadgear = [
-    '....XXXXXX......',
-    '...XRRRRRRX.....',
-    '..XRRRRRRRRX....',
-    '.XRRRSSSSRRRX...',
-    '.XRSSXSSXSSRX...',
-    '.XRSSSSSSSSRX...',
-    '.XRSSXSSXSSRX...',
-    '.XRSSSSSSSSRX...',
-    '.XRSSXSSXSSRX...',
-    '.XRRRSSSSRRRX...',
-    '..XRRRRRRRRX....',
-    '...XRRRRRRX.....',
-    '....XXXXXX......',
-    '................',
-    '................',
-    '................',
-  ];
-
-  static const List<String> gearArmor = [
-    '..XXXX..XXXX....',
-    '.XRRRRXXRRRRX...',
-    'XRRRRRRRRRRRRX..',
-    'XRRRRRRRRRRRRX..',
-    'XRRR!RRRR!RRRX..',
-    'XRRR!RRRR!RRRX..',
-    'XRRRRRRRRRRRRX..',
-    'XRRRRRRRRRRRRX..',
-    '.XRRRBBBRRRRX...',
-    '.XRRRBBBRRRRX...',
-    '..XRRRRRRRRX....',
-    '..XRRRRRRRRX....',
-    '...XXXXXXXX.....',
-    '................',
-    '................',
-    '................',
-  ];
-
-  static const List<String> gearShoes = [
-    '................',
-    '................',
-    '......XXXXX.....',
-    '.....XRRRRX.....',
-    '.....XRRRRX.....',
-    '.....XRRRRX.....',
-    '.....XRRRRXXXX..',
-    '....XRRRRRRRRX..',
-    '...XRRRRRRRRRX..',
-    '..XRRRRRRRRRRX..',
-    '.XRRRRRRRRRRRX..',
-    '.XWWWWWWWWWWWWX.',
-    '.XXXXXXXXXXXXXX.',
-    '................',
-    '................',
-    '................',
-  ];
-
-  // 4. ACTION BAR & SYSTEM ICONS (16x16)
-  static const List<String> iconSanay = [
-    '..XXXX....XXXX..',
-    '.XKKKKX..XKKKKX.',
-    'XKKXXKKXXKKXXKKX',
-    'XKKXXKKSSKKXXKKX',
-    'XKKXXKKSSKKXXKKX',
-    '.XKKKKXSSXKKKKX.',
-    '..XXXXSSSSXXXX..',
-    '......SSSS......',
-    '......SSSS......',
-    '..XXXXSSSSXXXX..',
-    '.XKKKKXSSXKKKKX.',
-    'XKKXXKKSSKKXXKKX',
-    'XKKXXKKSSKKXXKKX',
-    'XKKXXKKXXKKXXKKX',
-    '.XKKKKX..XKKKKX.',
-    '..XXXX....XXXX..',
-  ];
-
-  static const List<String> iconAral = [
-    '.....XXXXXX.....',
-    '...XXWWWWWWXX...',
-    '..XWWWWWWWWWWX..',
-    '.XWWWWWWWWWWWWX.',
-    'XWWWWWWWWWWWWWWX',
-    'XWSSSWWWWWWSSSWX',
-    'XWSSSWWWWWWSSSWX',
-    'XWSSSWWWWWWSSSWX',
-    'XWSSSWWWWWWSSSWX',
-    'XWWWWWWWWWWWWWWX',
-    'XWSSSWWWWWWSSSWX',
-    'XWSSSWWWWWWSSSWX',
-    'XWWWWWWWWWWWWWWX',
-    '.XMMMMMMMMMMMMX.',
-    '..XXXXXXXXXXXX..',
-    '................',
-  ];
-
-  static const List<String> iconHinga = [
-    '.....XXXXX......',
-    '...XXYYYYYXX....',
-    '..XYYYYYYYYYX...',
-    '.XYYYYYYXXXXX...',
-    '.XYYYYYX........',
-    'XYYYYYX.........',
-    'XYYYYYX.........',
-    'XYYYYYX.........',
-    'XYYYYYX.........',
-    '.XYYYYYX........',
-    '.XYYYYYYXXXXX...',
-    '..XYYYYYYYYYX...',
-    '...XXYYYYYXX....',
-    '.....XXXXX......',
-    '................',
-    '................',
-  ];
-
-  static const List<String> iconSpar = [
-    'X..............X',
-    'XX............XX',
-    '.XMX........XMX.',
-    '..XMX......XMX..',
-    '...XMYX..XMYX...',
-    '....XMYXXMYX....',
-    '.....XMYMYX.....',
-    '......XMMX......',
-    '.....XMYMYX.....',
-    '....XMYXXMYX....',
-    '...XMYX..XMYX...',
-    '..XMX......XMX..',
-    '.XMX........XMX.',
-    'XX............XX',
-    'X..............X',
-    '................',
-  ];
-
-  static const List<String> iconLaban = [
-    '..XXXXXXXXXXXX..',
-    '.XYYYYYYYYYYYYX.',
-    'XYYYYYYYYYYYYYYX',
-    'XYXXYYYYYYYYXXYX',
-    'XX..XYYYYYYX..XX',
-    '....XYYYYYYX....',
-    '....XYYYYYYX....',
-    '.....XYYYYX.....',
-    '......XYYX......',
-    '......XYYX......',
-    '.....XYYYYX.....',
-    '....XYYYYYYX....',
-    '..XXXXXXXXXXXX..',
-    '.XSSSSSSSSSSSSX.',
-    '.XXXXXXXXXXXXXX.',
-    '................',
-  ];
-
-  static const List<String> iconTiangge = [
-    '..XXXXXXXXXXXX..',
-    '.XRWRWRWRWRWRWX.',
-    'XRWRWRWRWRWRWRWX',
-    'XRRRRRRRRRRRRRRX',
-    '.XXXXXXXXXXXXXX.',
-    '..XSSX....XSSX..',
-    '..XSSX....XSSX..',
-    '..XSSX....XSSX..',
-    '..XSSXXXXXXSSX..',
-    '..XMMMMMMMMMMX..',
-    '..XMMMMMMMMMMX..',
-    '..XMMMMMMMMMMX..',
-    '..XXXXXXXXXXXX..',
-    '................',
-    '................',
-    '................',
-  ];
-
-  static const List<String> iconSettings = [
-    '......XXXX......',
-    '....XXSSSSXX....',
-    '...XSSXXXXSSX...',
-    '..XSSXSSSSXSSX..',
-    '.XSSXSSXXSSXSSX.',
-    '.XSSXSSXXSSXSSX.',
-    'XSSXSSSSSSSSXSSX',
-    'XSSXSSSSSSSSXSSX',
-    'XSSXSSSSSSSSXSSX',
-    'XSSXSSSSSSSSXSSX',
-    '.XSSXSSXXSSXSSX.',
-    '.XSSXSSXXSSXSSX.',
-    '..XSSXSSSSXSSX..',
-    '...XSSXXXXSSX...',
-    '....XXSSSSXX....',
-    '......XXXX......',
-  ];
-
-  // 5. ATTRIBUTE & STATUS MINI ICONS (8x8 & 10x10)
-  static const List<String> miniHeart = [
-    '.XX..XX.',
-    'XRRXXRRX',
-    'XRRRRRRX',
-    'XRRRRRRX',
-    '.XRRRRX.',
-    '..XRRX..',
-    '...XX...',
-    '........',
-  ];
-
-  static const List<String> miniWind = [
-    '...XXXX.',
-    '..XBBBBX',
-    'XBBBBX..',
-    '..XXXX..',
-    '.XBBBBX.',
-    'XBBBBX..',
-    '.XXXX...',
-    '........',
-  ];
-
-  static const List<String> miniPeso = [
-    '..XXXX..',
-    '.XYYYYX.',
-    'XYXYYYYX',
-    'XYXXXX..',
-    'XYXYYYX.',
-    'XYXXXXX.',
-    '.XYYYYX.',
-    '..XXXX..',
-  ];
-
-  static const List<String> miniPrestige = [
-    '...XX...',
-    '..XYYX..',
-    'XXYYYYXX',
-    '.XYYYYX.',
-    '..XYYX..',
-    '.XYXXYX.',
-    'XX....XX',
-    '........',
-  ];
-
-  static const List<String> miniShield = [
-    'XXXXXXXX',
-    'XGGGGGGX',
-    'XGGGGGGX',
-    'XGGGGGGX',
-    '.XGGGGX.',
-    '..XGGX..',
-    '...XX...',
-    '........',
-  ];
-
-  static const List<String> miniLightning = [
-    '....XX..',
-    '...XYX..',
-    '..XYX...',
-    '.XYYYX..',
-    '..XYX...',
-    '.XYX....',
-    '.XX.....',
-    '........',
-  ];
-
-  static const List<String> miniMuscle = [
-    '...XXXX...',
-    '..XCCCCX..',
-    '.XCCCCCCX.',
-    'XCCCCCCCCX',
-    'XCCCCCCCCX',
-    '.XCCCCXCCX',
-    '..XCCX.XX.',
-    '..XXXX....',
-    '..........',
-    '..........',
-  ];
-
-  static const List<String> miniShoe = [
-    '..........',
-    '...XXXX...',
-    '..XBBBBX..',
-    '..XBBBBX..',
-    '..XBBBBXXX',
-    '.XBBBBBBBX',
-    '.XWWWWWWWW',
-    '.XXXXXXXXX',
-    '..........',
-    '..........',
-  ];
-
-  static const List<String> miniTrunks = [
-    'XXXXXXXXXX',
-    'XWWWWWWWWX',
-    'XDDDDDDDDX',
-    'XDDDDDDDDX',
-    'XDDDDDDDDX',
-    'XDDDXXDDDX',
-    'XDDX..XDDX',
-    'XXX....XXX',
-    '..........',
-    '..........',
-  ];
-
-  static const List<String> miniBastonIcon = [
-    '........XX',
-    '.......XMX',
-    '......XMX.',
-    '.....XMX..',
-    '....XMX...',
-    '...XMX....',
-    '..XMX.....',
-    '.XMX......',
-    'XMX.......',
-    'XX........',
-  ];
-
-  static const List<String> miniRing = [
-    'RR....................BB',
-    'RRXXXXXXXXXXXXXXXXXXXXBB',
-    'RR....................BB',
-    'RRXXXXXXXXXXXXXXXXXXXXBB',
-    'RR..XXXXXXXXXXXXXXXX..BB',
-    'RR.XWWWWWWWWWWWWWWWWX.BB',
-    'RRXWWWWWWWWWWWWWWWWWWXBB',
-    'RRXXXXXXXXXXXXXXXXXXXXBB',
-    'MM....................MM',
-    'MM....................MM',
-    'MM....................MM',
-    'MM....................MM',
-  ];
-
-  static const List<String> miniTrophy = [
-    '..XXXXXXXXXX..',
-    '.XYYYYYYYYYYX.',
-    'XYYYYYYYYYYYYX',
-    'XYXXYYYYYYXXYX',
-    'XX..XYYYYX..XX',
-    '....XYYYYX....',
-    '.....XYYX.....',
-    '......YY......',
-    '.....XYYX.....',
-    '....XYYYYYX...',
-    '..XXXXXXXXXX..',
-    '..XMMMMMMMMX..',
-  ];
-
-  // 6. MULTI-POSE CHIBI SPRITES (Image 1 Art Style)
-  static const List<String> chibiBayaniIdle = [
-    '.....XXXXX......',
-    '....XKKKKKX.....',
-    '...XKKKKKKKX....',
-    '..XRRRRRRRRRX...',
-    '..XR!RRRRR!RX...',
-    '..XCCCCCCCCCX...',
-    '..XCXXCCCXXCX...',
-    '..XCCCCCCCCCX...',
-    '..XCCXXXXXCCX...',
-    '...XCCCCCCCX....',
-    '....XXXXXXX.....',
-    '..XXXXXXXXXXX...',
-    '.XNNNNNNNNNNNX..',
-    '.XNNNNNNNNNNNX..',
-    '.XCCCCCCCCCCCX..',
-    '..XRRRRXRRRRX...',
-    '..XRRRRXRRRRX...',
-    '..XRRRRXRRRRX...',
-    '..XWWWWXWWWWX...',
-    '..XXXXXX.XXXX...',
-  ];
-
-  static const List<String> chibiBayaniStep = [
-    '.....XXXXX......',
-    '....XKKKKKX.....',
-    '...XKKKKKKKX....',
-    '..XRRRRRRRRRX...',
-    '..XR!RRRRR!RX...',
-    '..XCCCCCCCCCX...',
-    '..XCXXCCCXXCX...',
-    '..XCCCCCCCCCX...',
-    '..XCCXXXXXCCX...',
-    '...XCCCCCCCX....',
-    '....XXXXXXX.....',
-    '..XXXXXXXXXXX...',
-    '.XNNNNNNNNNNNX..',
-    '.XNNNNNNNNNNNX..',
-    '.XCCCCCCCCCCCX..',
-    '.XRRRRX..XRRRRX.',
-    '.XRRRRX...XRRRRX',
-    '.XWWWWX...XWWWWX',
-    '.XXXXXX....XXXXX',
-    '................',
-  ];
-
-  static const List<String> chibiBayaniPunch = [
-    '.....XXXXX......',
-    '....XKKKKKX.....',
-    '...XKKKKKKKX....',
-    '..XRRRRRRRRRX...',
-    '..XR!RRRRR!RX...',
-    '..XCCCCCCCCCX...',
-    '..XCXXCCCXXCX...',
-    '..XCCCCCCCCCX...',
-    '..XCCXXXXXCCX...',
-    '...XCCCCCCCX....',
-    '..XXXXXXXXXXX.MM',
-    '.XNNNNNNNNNNNXMM',
-    '.XNNNNNNNNNNNXMM',
-    '.XCCCCCCCCCCCCCC',
-    '..XRRRRXRRRRX.MM',
-    '..XRRRRXRRRRX...',
-    '..XWWWWXWWWWX...',
-    '..XXXXXX.XXXX...',
-    '................',
-    '................',
-  ];
-
-  static const List<String> chibiBayaniKnockdown = [
-    '................',
-    '................',
-    '................',
-    '................',
-    '................',
-    '................',
-    '................',
-    '................',
-    '................',
-    '................',
-    '....XXXXXX......',
-    '..XXRRRRRRXX....',
-    '.XCCCCCCCCCCX...',
-    '.XCXXCCCCXXCX...',
-    '.XCCCCXXXXCCX...',
-    '.XNNNNNNNNNNX...',
-    '.XRRRRRRRRRRX...',
-    '.XWWWWWWWWWWX...',
-    '..XXXXXXXXXX....',
-    '................',
-  ];
-
-  static const List<String> chibiBayaniVictory = [
-    '.XX.......XX....',
-    'XCCX.....XCCX...',
-    'XCCX.....XCCX...',
-    '.XXX.XXXXXXX....',
-    '....XKKKKKX.....',
-    '...XKKKKKKKX....',
-    '..XRRRRRRRRRX...',
-    '..XR!RRRRR!RX...',
-    '..XCCCCCCCCCX...',
-    '..XCXXCCCXXCX...',
-    '..XCCCCCCCCCX...',
-    '..XCCXXXXXCCX...',
-    '...XCCCCCCCX....',
-    '..XXXXXXXXXXX...',
-    '.XNNNNNNNNNNNX..',
-    '.XNNNNNNNNNNNX..',
-    '..XRRRRXRRRRX...',
-    '..XRRRRXRRRRX...',
-    '..XWWWWXWWWWX...',
-    '..XXXXXX.XXXX...',
-  ];
-
-  static const List<String> chibiBayaniSit = [
-    '................',
-    '................',
-    '.....XXXXX......',
-    '....XKKKKKX.....',
-    '...XKKKKKKKX....',
-    '..XRRRRRRRRRX...',
-    '..XR!RRRRR!RX...',
-    '..XCCCCCCCCCX...',
-    '..XCXXCCCXXCX...',
-    '..XCCCCCCCCCX...',
-    '..XCCXXXXXCCX...',
-    '...XCCCCCCCX....',
-    '..XXXXXXXXXXX...',
-    '.XNNNNNNNNNNNX..',
-    '.XNNNNNNNNNNNX..',
-    '..XRRRRRRRRRRX..',
-    '..XRRRRRRRRRRX..',
-    '..XWWWWWWWWWWX..',
-    '...XXXXXXXXXX...',
-    '................',
-  ];
-
-  static const List<String> chibiOpponentIdle = [
-    '.....XXXXX......',
-    '....XmmmmmX.....',
-    '...XmmmmmmmX....',
-    '..XmmmmmmmmmX...',
-    '..XCCCCCCCCCX...',
-    '..XCXXCCCXXCX...',
-    '..XCCCCCCCCCX...',
-    '..XCCXMMMXCCX...',
-    '..XCCXXXXXCCX...',
-    '...XCCCCCCCX....',
-    '....XXXXXXX.....',
-    '..XXXXXXXXXXX...',
-    '.XbbbbbbbbbbX...',
-    '.XbbbbbbbbbbX...',
-    '.XCCCCCCCCCCCX..',
-    '..XDDDDXDDDDX...',
-    '..XDDDDXDDDDX...',
-    '..XDDDDXDDDDX...',
-    '..XWWWWXWWWWX...',
-    '..XXXXXX.XXXX...',
-  ];
-
-  static const List<String> chibiOpponentStep = [
-    '.....XXXXX......',
-    '....XmmmmmX.....',
-    '...XmmmmmmmX....',
-    '..XmmmmmmmmmX...',
-    '..XCCCCCCCCCX...',
-    '..XCXXCCCXXCX...',
-    '..XCCCCCCCCCX...',
-    '..XCCXMMMXCCX...',
-    '..XCCXXXXXCCX...',
-    '...XCCCCCCCX....',
-    '....XXXXXXX.....',
-    '..XXXXXXXXXXX...',
-    '.XbbbbbbbbbbX...',
-    '.XbbbbbbbbbbX...',
-    '.XCCCCCCCCCCCX..',
-    '.XDDDDX..XDDDDX.',
-    '.XDDDDX...XDDDDX',
-    '.XWWWWX...XWWWWX',
-    '.XXXXXX....XXXXX',
-    '................',
-  ];
-
-  static const List<String> chibiOpponentVictory = [
-    '.XX.......XX....',
-    'XCCX.....XCCX...',
-    'XCCX.....XCCX...',
-    '.XXX.XXXXXXX....',
-    '....XmmmmmX.....',
-    '...XmmmmmmmX....',
-    '..XmmmmmmmmmX...',
-    '..XCCCCCCCCCX...',
-    '..XCXXCCCXXCX...',
-    '..XCCCCCCCCCX...',
-    '..XCCXMMMXCCX...',
-    '..XCCXXXXXCCX...',
-    '...XCCCCCCCX....',
-    '..XXXXXXXXXXX...',
-    '.XbbbbbbbbbbX...',
-    '.XbbbbbbbbbbX...',
-    '..XDDDDXDDDDX...',
-    '..XDDDDXDDDDX...',
-    '..XWWWWXWWWWX...',
-    '..XXXXXX.XXXX...',
-  ];
-
-  // 6. STREET ELEMENTS (Tricycle 24x16)
-  static const List<String> tricycleSprite = [
-    '........................',
-    '.....XXXXXXXXXXXX.......',
-    '....XRRRRRRRRRRRRX......',
-    '...XRRRRRRRRRRRRRRX.....',
-    '..XRRXXXXXXXXXXXXRRX....',
-    '..XRXWWWWWWWWWWWWXRX....',
-    '..XRXWWWWWWWWWWWWXRX....',
-    '..XRXXXXXXXXXXXXXXRX....',
-    '..XRRRRRRRRRRRRRRRRX....',
-    '..XRRRRRRRRRRRRRRRRX.XX.',
-    '.XXRRRRRRRRRRRRRRRRXXXMX',
-    'XKKXRRRRRRRRRRRRRRXKKXMX',
-    'XKKXRRRRRRRRRRRRRRXKKXMX',
-    '.XX.XXXXXXXXXXXXXX.XX.XX',
-    '........................',
-    '........................',
-  ];
+  // 6. CHIBI & STREET ASSETS
+  static const List<String> chibiBayaniIdle = ['CHAR:BAYANI'];
+  static const List<String> chibiBayaniStep = ['CHAR:STEP'];
+  static const List<String> chibiBayaniPunch = ['CHAR:PUNCH'];
+  static const List<String> chibiBayaniKnockdown = ['CHAR:KO'];
+  static const List<String> chibiBayaniVictory = ['CHAR:VIC'];
+  static const List<String> chibiBayaniSit = ['CHAR:SIT'];
+  static const List<String> chibiOpponentIdle = ['CHAR:OPP'];
+  static const List<String> chibiOpponentStep = ['CHAR:OPP_STEP'];
+  static const List<String> chibiOpponentVictory = ['CHAR:OPP_VIC'];
+  static const List<String> tricycleSprite = ['VEHICLE:TRI'];
 }
 
 /// Kairosoft-style Double-Bordered Retro Window Box

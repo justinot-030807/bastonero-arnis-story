@@ -1,0 +1,86 @@
+[
+  {
+    "id": "berto_batuta",
+    "name": "Berto Batuta",
+    "nickname": "Batuta",
+    "gymName": "Berto Club",
+    "style": "SoloBaston",
+    "tier": 1,
+    "lakas": 25.0,
+    "bilis": 18.0,
+    "diskarte": 15.0,
+    "salag": 20.0
+  },
+  {
+    "id": "kanor_sipol",
+    "name": "Kanor \"Sipol\"",
+    "nickname": "Sipol",
+    "gymName": "Sipol Kali Dojo",
+    "style": "DobleBaston",
+    "tier": 2,
+    "lakas": 28.0,
+    "bilis": 42.0,
+    "diskarte": 32.0,
+    "salag": 28.0
+  },
+  {
+    "id": "lorenzo_delacruz",
+    "name": "Lorenzo Dela Cruz",
+    "nickname": "Prodigy",
+    "gymName": "Dela Cruz Martial Guild",
+    "style": "EspadaYDaga",
+    "tier": 3,
+    "lakas": 55.0,
+    "bilis": 65.0,
+    "diskarte": 70.0,
+    "salag": 50.0
+  },
+  {
+    "id": "danilo_tigre",
+    "name": "Danilo Dimagiba",
+    "nickname": "Tigre",
+    "gymName": "Barangay San Isidro Gym",
+    "style": "SoloBaston",
+    "tier": 3,
+    "lakas": 68.0,
+    "bilis": 48.0,
+    "diskarte": 52.0,
+    "salag": 72.0
+  },
+  {
+    "id": "andres_kidlat",
+    "name": "Andres Malabanan",
+    "nickname": "Kidlat",
+    "gymName": "Katipunan Eskrima Academy",
+    "style": "DobleBaston",
+    "tier": 4,
+    "lakas": 95.0,
+    "bilis": 125.0,
+    "diskarte": 110.0,
+    "salag": 90.0
+  },
+  {
+    "id": "datu_bagsik",
+    "name": "Datu Alon",
+    "nickname": "Bagsik",
+    "gymName": "Maharlika Arnis Club",
+    "style": "EspadaYDaga",
+    "tier": 5,
+    "lakas": 170.0,
+    "bilis": 185.0,
+    "diskarte": 190.0,
+    "salag": 155.0
+  },
+  {
+    "id": "nonoy_ilonggo",
+    "name": "Nonoy Magtanggol",
+    "nickname": "Ilonggo",
+    "gymName": "Western Visayas Bastoneros",
+    "style": "SoloBaston",
+    "tier": 6,
+    "lakas": 280.0,
+    "bilis": 270.0,
+    "diskarte": 290.0,
+    "salag": 260.0
+  }
+]

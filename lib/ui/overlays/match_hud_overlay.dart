@@ -22,6 +22,7 @@ class _MatchHudOverlayState extends State<MatchHudOverlay> {
       builder: (context, _) {
         final p = widget.game.player;
         final o = widget.game.opponent;
+        final engine = widget.game.engine;
 
         final isBerto = o.fighter.name.contains('Berto');
         final opponentPortrait = isBerto ? PixelArtCatalog.bertoPortrait : PixelArtCatalog.lorenzoPortrait;
@@ -119,6 +120,35 @@ class _MatchHudOverlayState extends State<MatchHudOverlay> {
                                   ],
                                 ],
                               ),
+                              const SizedBox(height: 2),
+                              // PUSO Gauge
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: PixelBar(
+                                      current: engine.player.pusoMeter,
+                                      max: 100.0,
+                                      fillColor: const Color(0xFFF59E0B),
+                                      totalSegments: 10,
+                                      height: 5,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    engine.player.pusoMeter >= 100.0
+                                        ? 'TAMAAN!'
+                                        : 'PUSO: ${engine.player.pusoMeter.toInt()}%',
+                                    style: TextStyle(
+                                      color: engine.player.pusoMeter >= 100.0
+                                          ? const Color(0xFFFDE047)
+                                          : const Color(0xFFF59E0B),
+                                      fontSize: 7.5,
+                                      fontWeight: FontWeight.bold,
+                                      fontFamily: 'monospace',
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ],
                           ),
                         ),
@@ -133,9 +163,9 @@ class _MatchHudOverlayState extends State<MatchHudOverlay> {
                           ),
                           child: Column(
                             children: [
-                              const Text(
-                                'ROUND 1',
-                                style: TextStyle(color: Color(0xFFF4B41B), fontSize: 7, fontFamily: 'monospace', fontWeight: FontWeight.bold),
+                              Text(
+                                'ROUND ${engine.currentRound}/${engine.totalRounds}',
+                                style: const TextStyle(color: Color(0xFFF4B41B), fontSize: 7, fontFamily: 'monospace', fontWeight: FontWeight.bold),
                               ),
                               Text(
                                 widget.game.matchTimer.toInt().toString().padLeft(2, '0'),
@@ -195,6 +225,28 @@ class _MatchHudOverlayState extends State<MatchHudOverlay> {
                               Text(
                                 'HP: ${o.currentHp.toInt()} / ${o.fighter.maxHp.toInt()}',
                                 style: const TextStyle(color: Color(0xFF8B9BB4), fontSize: 9, fontFamily: 'monospace'),
+                              ),
+                              const SizedBox(height: 2),
+                              // Opponent Action Gauge
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    'AKSYON: ${engine.opponent.actionMeter.toInt().clamp(0, 100)}%',
+                                    style: const TextStyle(color: Color(0xFF38BDF8), fontSize: 7.5, fontFamily: 'monospace'),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  SizedBox(
+                                    width: 50,
+                                    child: PixelBar(
+                                      current: engine.opponent.actionMeter.clamp(0.0, 100.0),
+                                      max: 100.0,
+                                      fillColor: const Color(0xFF38BDF8),
+                                      totalSegments: 6,
+                                      height: 5,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
@@ -270,10 +322,10 @@ class _MatchHudOverlayState extends State<MatchHudOverlay> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                        _buildStatBox(PixelArtCatalog.miniMuscle, 'LAKAS', p.combatPower.toInt(), o.combatPower.toInt(), const Color(0xFFDC2626)),
-                        _buildStatBox(PixelArtCatalog.miniShoe, 'BILIS', p.combatSpeed.toInt(), o.combatSpeed.toInt(), const Color(0xFF38BDF8)),
-                        _buildStatBox(PixelArtCatalog.miniBastonIcon, 'DISKARTE', p.combatTechnique.toInt(), o.combatTechnique.toInt(), const Color(0xFFF4B41B)),
-                        _buildStatBox(PixelArtCatalog.miniTrunks, 'SALAG', p.combatDefense.toInt(), o.combatDefense.toInt(), const Color(0xFF4ADE80)),
+                        _buildStatBox(PixelArtCatalog.miniMuscle, 'LAKAS', p.combatPower.toInt(), o.combatPower.toInt()),
+                        _buildStatBox(PixelArtCatalog.miniShoe, 'BILIS', p.combatSpeed.toInt(), o.combatSpeed.toInt()),
+                        _buildStatBox(PixelArtCatalog.miniBastonIcon, 'DISKARTE', p.combatTechnique.toInt(), o.combatTechnique.toInt()),
+                        _buildStatBox(PixelArtCatalog.miniTrunks, 'SALAG', p.combatDefense.toInt(), o.combatDefense.toInt()),
                       ],
                     ),
                     const SizedBox(height: 5),
@@ -368,7 +420,13 @@ class _MatchHudOverlayState extends State<MatchHudOverlay> {
     );
   }
 
-  Widget _buildStatBox(List<String> iconMatrix, String label, int playerVal, int oppVal, Color color) {
+  Widget _buildStatBox(List<String> iconMatrix, String label, int playerVal, int oppVal) {
+    final color = playerVal > oppVal
+        ? const Color(0xFF4ADE80) // Advantage Green
+        : (playerVal < oppVal
+            ? const Color(0xFFEF4444) // Disadvantage Red
+            : const Color(0xFFFDE047)); // Equal Yellow
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
       decoration: BoxDecoration(

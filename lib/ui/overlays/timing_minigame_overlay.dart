@@ -16,6 +16,7 @@ class TimingMiniGameOverlay extends StatefulWidget {
 class _TimingMiniGameOverlayState extends State<TimingMiniGameOverlay>
     with SingleTickerProviderStateMixin {
   late AnimationController _animController;
+  Timer? _autoAttemptTimer;
   bool _hasTapped = false;
   String _resultFeedback = '';
   Color _feedbackColor = Colors.white;
@@ -27,43 +28,41 @@ class _TimingMiniGameOverlayState extends State<TimingMiniGameOverlay>
       vsync: this,
       duration: const Duration(milliseconds: 650),
     )..repeat(reverse: true);
+
+    // Section 8: "If the player does nothing for 3 s, the engine auto-attempts with 50% effectiveness."
+    _autoAttemptTimer = Timer(const Duration(seconds: 3), () {
+      if (!_hasTapped && mounted) {
+        _resolveTap(0.35, isAuto: true);
+      }
+    });
   }
 
   @override
   void dispose() {
+    _autoAttemptTimer?.cancel();
     _animController.dispose();
     super.dispose();
   }
 
   void _onStrikeAttempt() {
     if (_hasTapped) return;
+    _resolveTap(_animController.value, isAuto: false);
+  }
+
+  void _resolveTap(double indicatorValue, {bool isAuto = false}) {
+    if (_hasTapped) return;
     _hasTapped = true;
+    _autoAttemptTimer?.cancel();
     _animController.stop();
 
-    final indicatorValue = _animController.value;
-    final technique = widget.game.player.combatTechnique;
-    final halfZoneWidth = (0.12 + (technique * 0.0035)).clamp(0.12, 0.32);
-    const center = 0.50;
-
-    final distFromCenter = (indicatorValue - center).abs();
-
-    bool isPerfect = false;
-    bool isSuccess = false;
-
-    if (distFromCenter <= (halfZoneWidth * 0.35)) {
-      isPerfect = true;
-      isSuccess = true;
-      _resultFeedback = '[ASINTADO! PERFECT COUNTER!]';
+    if (indicatorValue >= 0.45 && indicatorValue <= 0.55) {
+      _resultFeedback = '[ASINTADO! PERFECT 2.0x CRIT!]';
       _feedbackColor = const Color(0xFFFDE047);
-    } else if (distFromCenter <= halfZoneWidth) {
-      isPerfect = false;
-      isSuccess = true;
-      _resultFeedback = '[SOLIDONG PALO! GOOD HIT!]';
+    } else if (indicatorValue >= 0.30 && indicatorValue <= 0.70) {
+      _resultFeedback = isAuto ? '[AUTO-FINISHER! 2.0x PALO]' : '[SOLIDONG FINISHER! 2.0x]';
       _feedbackColor = const Color(0xFF4ADE80);
     } else {
-      isPerfect = false;
-      isSuccess = false;
-      _resultFeedback = '[SABLAY! COUNTERED BY OPPONENT!]';
+      _resultFeedback = '[SABLAY! MOVE WASTED]';
       _feedbackColor = const Color(0xFFDC2626);
     }
 
@@ -71,34 +70,48 @@ class _TimingMiniGameOverlayState extends State<TimingMiniGameOverlay>
 
     Timer(const Duration(milliseconds: 400), () {
       if (mounted) {
-        widget.game.resolveClinchMiniGame(
-          isPerfect: isPerfect,
-          isSuccess: isSuccess,
-        );
+        widget.game.resolveFinisherTap(tapOffset: indicatorValue);
       }
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final technique = widget.game.player.combatTechnique;
-    final halfZoneWidth = (0.12 + (technique * 0.0035)).clamp(0.12, 0.32);
-    final totalZoneFactor = halfZoneWidth * 2;
+    final signature = widget.game.playerFighter.style.signatureMove;
 
     return Center(
       child: RetroBox(
         width: 380,
-        title: 'SABONG CLINCH: TIMING TEST',
+        title: 'TAMAAN! FINISHER TAP',
         backgroundColor: const Color(0xFF0F172A),
+        borderColor: const Color(0xFF1A1C2C),
+        bevelColor: const Color(0xFFF59E0B),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              'Tamaan ang Gitnang Gold para sa ${widget.game.playerFighter.style.signatureMove}!',
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const PixelSpriteWidget(matrix: PixelArtCatalog.miniBastonIcon, pixelSize: 1.6),
+                const SizedBox(width: 8),
+                Text(
+                  'PUSPOS ANG PUSO: $signature!',
+                  style: const TextStyle(
+                    color: Color(0xFFFDE047),
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'monospace',
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Tamaan ang Gitnang Gold para sa 2.0x Crit at Screen Flash!',
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 color: Color(0xFFF4ECE1),
-                fontSize: 10,
+                fontSize: 9.5,
                 fontFamily: 'monospace',
               ),
             ),
@@ -124,18 +137,18 @@ class _TimingMiniGameOverlayState extends State<TimingMiniGameOverlay>
                           ),
                         ),
 
-                        // Green Target Zone
+                        // Green Zone: [0.30..0.70] (40% width)
                         FractionallySizedBox(
-                          widthFactor: totalZoneFactor,
+                          widthFactor: 0.40,
                           child: Container(
                             height: 36,
                             color: const Color(0xFF16A34A).withValues(alpha: 0.85),
                           ),
                         ),
 
-                        // Golden Center Bullseye
+                        // Gold Bullseye: [0.45..0.55] (10% width)
                         FractionallySizedBox(
-                          widthFactor: totalZoneFactor * 0.35,
+                          widthFactor: 0.10,
                           child: Container(
                             height: 36,
                             color: const Color(0xFFF4B41B),
@@ -181,11 +194,11 @@ class _TimingMiniGameOverlayState extends State<TimingMiniGameOverlay>
                 ),
               )
             else
-              Text(
-                'Diskarte Stat (+${technique.toInt()}) pinapalawak ang Gold Sweet Spot!',
-                style: const TextStyle(
+              const Text(
+                'Auto-attempt sa loob ng 3 segundo kapag hindi pinindot.',
+                style: TextStyle(
                   color: Color(0xFF8B9BB4),
-                  fontSize: 9,
+                  fontSize: 8.5,
                   fontFamily: 'monospace',
                 ),
               ),
@@ -203,7 +216,7 @@ class _TimingMiniGameOverlayState extends State<TimingMiniGameOverlay>
                   PixelSpriteWidget(matrix: PixelArtCatalog.iconSpar, pixelSize: 1.2),
                   SizedBox(width: 8),
                   Text(
-                    'HATAW NA! (STRIKE / COUNTER)',
+                    'TAMAAN NA! (TAP)',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 12,

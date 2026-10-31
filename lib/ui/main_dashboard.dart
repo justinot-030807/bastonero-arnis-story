@@ -12,11 +12,13 @@ import 'components/live_bakuran_camp.dart';
 import 'overlays/match_hud_overlay.dart';
 import 'overlays/timing_minigame_overlay.dart';
 import 'overlays/match_result_overlay.dart';
+import 'overlays/estudyante_modal.dart';
 import 'overlays/training_modal.dart';
 import 'overlays/tournament_modal.dart';
 import 'overlays/tournament_bracket_modal.dart';
 import 'overlays/experts_analysis_modal.dart';
 import 'overlays/gym_builder_modal.dart';
+import 'overlays/monthly_summary_modal.dart';
 import 'overlays/story_dialog_modal.dart';
 import 'overlays/tiangge_modal.dart';
 
@@ -37,9 +39,11 @@ class _MainDashboardState extends State<MainDashboard> {
     TournamentOpponent? tournamentOpponent,
     ArenaType arenaType = ArenaType.purokLupa,
   }) {
+    final state = Provider.of<GameStateProvider>(context, listen: false);
     final game = ArnisMatchGame(
       playerFighter: player,
       opponentFighter: opponent,
+      playerStudent: state.activeStudent,
       tournament: tournament,
       arenaType: arenaType,
       onMatchEnded: (won, maxDamage) {
@@ -366,6 +370,16 @@ class _MainDashboardState extends State<MainDashboard> {
                     onDismiss: gameState.dismissActiveDialogue,
                   ),
                 ),
+
+              // MONTHLY FINANCIAL SUMMARY MODAL (IF TRIGGERED)
+              if (gameState.shouldShowMonthlySummary && gameState.lastMonthlyLedger != null)
+                Container(
+                  color: Colors.black.withValues(alpha: 0.8),
+                  child: MonthlySummaryModal(
+                    ledger: gameState.lastMonthlyLedger!,
+                    onDismiss: gameState.dismissMonthlySummary,
+                  ),
+                ),
             ],
           ),
         );
@@ -379,7 +393,7 @@ class _MainDashboardState extends State<MainDashboard> {
     final isVarsityOk = fighter.isEligibleForSchoolVarsity;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: const BoxDecoration(
         color: Color(0xFF1E293B),
         border: Border(
@@ -392,7 +406,7 @@ class _MainDashboardState extends State<MainDashboard> {
             children: [
               // Calendar Pill
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
                 decoration: BoxDecoration(
                   color: const Color(0xFF0F172A),
                   border: Border.all(color: const Color(0xFFF4B41B), width: 1.5),
@@ -401,28 +415,79 @@ class _MainDashboardState extends State<MainDashboard> {
                   'Y${state.year} Wk${state.week} - ${state.currentMonthName.split(' ').first}',
                   style: const TextStyle(
                     color: Color(0xFFFDE047),
-                    fontSize: 10,
+                    fontSize: 9,
                     fontWeight: FontWeight.bold,
                     fontFamily: 'monospace',
                   ),
                 ),
               ),
-              const Spacer(),
 
-              // Currency
-              Row(
-                children: [
-                  const PixelSpriteWidget(matrix: PixelArtCatalog.miniPeso, pixelSize: 1.6),
-                  const SizedBox(width: 4),
-                  Text(
-                    'P${state.pesos}',
-                    style: const TextStyle(
-                      color: Color(0xFFFDE047),
-                      fontSize: 12,
+              // Summer Break Tag
+              if (state.isSummerBreak) ...[
+                const SizedBox(width: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEA580C),
+                    border: Border.all(color: const Color(0xFFFDBA74), width: 1),
+                  ),
+                  child: const Text(
+                    'BAKASYON',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 7,
                       fontWeight: FontWeight.bold,
                       fontFamily: 'monospace',
                     ),
                   ),
+                ),
+              ],
+
+              const SizedBox(width: 5),
+
+              // Speed Controls: [||] [1x] [2x] [4x]
+              _buildSpeedButton(state, GameSpeed.pause, '||'),
+              const SizedBox(width: 2),
+              _buildSpeedButton(state, GameSpeed.normal1x, '1x'),
+              const SizedBox(width: 2),
+              _buildSpeedButton(state, GameSpeed.fast2x, '2x'),
+              const SizedBox(width: 2),
+              _buildSpeedButton(state, GameSpeed.fast4x, '4x'),
+
+              const Spacer(),
+
+              // Currency with Low Money Warning Banner
+              Row(
+                children: [
+                  const PixelSpriteWidget(matrix: PixelArtCatalog.miniPeso, pixelSize: 1.6),
+                  const SizedBox(width: 3),
+                  if (state.isLowMoney)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFDC2626),
+                        border: Border.all(color: const Color(0xFFF87171), width: 1),
+                      ),
+                      child: Text(
+                        'KAPOS P${state.pesos}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 8,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                    )
+                  else
+                    Text(
+                      'P${state.pesos}',
+                      style: const TextStyle(
+                        color: Color(0xFFFDE047),
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'monospace',
+                      ),
+                    ),
                   if (state.totalPassiveWeeklyPesos > 0)
                     Text(
                       ' (+P${state.totalPassiveWeeklyPesos})',
@@ -430,7 +495,24 @@ class _MainDashboardState extends State<MainDashboard> {
                     ),
                 ],
               ),
-              const SizedBox(width: 12),
+
+              // Active Bailout Tag
+              if (state.hasActiveBailout) ...[
+                const SizedBox(width: 5),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD97706),
+                    border: Border.all(color: const Color(0xFFFDE68A), width: 1),
+                  ),
+                  child: Text(
+                    'UTANG ${state.bailoutWeeksRemaining}w',
+                    style: const TextStyle(color: Colors.white, fontSize: 7, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+                  ),
+                ),
+              ],
+
+              const SizedBox(width: 8),
 
               // Prestige
               Row(
@@ -441,7 +523,7 @@ class _MainDashboardState extends State<MainDashboard> {
                     '${state.prestige}',
                     style: const TextStyle(
                       color: Color(0xFF60A5FA),
-                      fontSize: 12,
+                      fontSize: 11,
                       fontWeight: FontWeight.bold,
                       fontFamily: 'monospace',
                     ),
@@ -450,6 +532,20 @@ class _MainDashboardState extends State<MainDashboard> {
               ),
             ],
           ),
+
+          // Week Progress Indicator
+          if (state.speed != GameSpeed.pause) ...[
+            const SizedBox(height: 3),
+            ClipRRect(
+              child: LinearProgressIndicator(
+                value: state.weekProgress,
+                minHeight: 2,
+                backgroundColor: const Color(0xFF0F172A),
+                valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF38BDF8)),
+              ),
+            ),
+          ],
+
           const SizedBox(height: 6),
 
           // STAMINA & ACADEMICS ROW
@@ -526,6 +622,32 @@ class _MainDashboardState extends State<MainDashboard> {
             ),
           ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildSpeedButton(GameStateProvider state, GameSpeed speedMode, String label) {
+    final isActive = state.speed == speedMode;
+    return GestureDetector(
+      onTap: () => state.setSpeed(speedMode),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+        decoration: BoxDecoration(
+          color: isActive ? const Color(0xFF0284C7) : const Color(0xFF0F172A),
+          border: Border.all(
+            color: isActive ? const Color(0xFF38BDF8) : const Color(0xFF475569),
+            width: 1,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isActive ? Colors.white : const Color(0xFF94A3B8),
+            fontSize: 7,
+            fontWeight: FontWeight.bold,
+            fontFamily: 'monospace',
+          ),
+        ),
       ),
     );
   }
@@ -625,6 +747,26 @@ class _MainDashboardState extends State<MainDashboard> {
                             child: const Text(
                               'I-EDIT',
                               style: TextStyle(color: Color(0xFFFDE047), fontSize: 7, fontFamily: 'monospace', fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        GestureDetector(
+                          onTap: () {
+                            showDialog(
+                              context: context,
+                              builder: (ctx) => EstudyanteModal(gameState: state),
+                            );
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF0284C7),
+                              border: Border.all(color: Colors.white, width: 1),
+                            ),
+                            child: Text(
+                              'ROSTER (${state.students.length})',
+                              style: const TextStyle(color: Colors.white, fontSize: 7, fontFamily: 'monospace', fontWeight: FontWeight.bold),
                             ),
                           ),
                         ),

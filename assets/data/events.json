@@ -1,0 +1,114 @@
+[
+  {
+    "id": "bagyo",
+    "title": "Malakas na Bagyo",
+    "tag": "negative",
+    "text": "Bumuhos ang malakas na bagyo sa inyong lugar! Napinsala ang bakuran at kailangang ayusin.",
+    "effects": {
+      "trainingBlocked": true,
+      "costBase": 400
+    }
+  },
+  {
+    "id": "pista_barangay",
+    "title": "Pista ng Barangay",
+    "tag": "positive",
+    "text": "Masayang nagdiwang ang barangay! Nagtanghal ang inyong kampo ng Anyo exhibition.",
+    "effects": {
+      "fameGain": 40,
+      "walkInRecruitBonus": 1
+    }
+  },
+  {
+    "id": "lolo_grandmaster",
+    "title": "Dumalaw si Lolo Grandmaster",
+    "tag": "positive",
+    "text": "Isang beteranong arnisador ang bumisita sa inyong bakuran at nagturo ng lihim na anggulo.",
+    "effects": {
+      "learnMoveChance": 0.8,
+      "diskarteGain": 5.0
+    }
+  },
+  {
+    "id": "hamon_karibal",
+    "title": "Hamon ng Karibal",
+    "tag": "neutral",
+    "text": "Pumunta ang karibal na gym para sa isang paligsahan sa sparring!",
+    "effects": {
+      "sparChallenge": true
+    }
+  },
+  {
+    "id": "brownout",
+    "title": "Brownout sa Purok",
+    "tag": "negative",
+    "text": "Nawalan ng kuryente dahil sa natumbang poste. Mainit at bagsak ang gana ng mga mag-aaral.",
+    "effects": {
+      "moralePenalty": 5
+    }
+  },
+  {
+    "id": "magulang_reklamo",
+    "title": "Magulang na Nagrereklamo",
+    "tag": "negative",
+    "text": "Nag-aalala ang magulang dahil bumababa ang marka sa eskwela ng kanilang anak.",
+    "effects": {
+      "gradeWarning": true
+    }
+  },
+  {
+    "id": "sponsor_visit",
+    "title": "Sponsor na Dumalaw",
+    "tag": "positive",
+    "text": "Isang lokal na negosyante ang humanga sa dedikasyon ng inyong kampo at nagbigay ng tulong.",
+    "effects": {
+      "moneyGain": 1500
+    }
+  },
+  {
+    "id": "sakit_flu",
+    "title": "Trankaso sa Camp",
+    "tag": "negative",
+    "text": "Inubo at nilagnat ang ilang estudyante dahil sa pabago-bagong panahon.",
+    "effects": {
+      "studentsRestWeeks": 1
+    }
+  },
+  {
+    "id": "pasko",
+    "title": "Pasko sa Bakuran",
+    "tag": "positive",
+    "text": "Puno ng parol at tawanan ang inyong bakuran! Sama-samang nagsalu-salo ng bibingka.",
+    "effects": {
+      "moraleGain": 10
+    }
+  },
+  {
+    "id": "scholarship_offer",
+    "title": "Scholarship Offer",
+    "tag": "positive",
+    "text": "Dahil sa magandang standing sa Varsity, may bagong scholar na handang sumapi!",
+    "effects": {
+      "freeHighPotentialRecruit": true
+    }
+  },
+  {
+    "id": "alumni_returns",
+    "title": "Pagbabalik ng Alumnus",
+    "tag": "positive",
+    "text": "Bumalik ang dati mong kampeon upang magbigay ng payo at donasyon sa bagong henerasyon.",
+    "effects": {
+      "moneyGain": 800,
+      "moraleGain": 5
+    }
+  },
+  {
+    "id": "dyip_naaksidente",
+    "title": "Na-flat ang Gulong ng Tricycle",
+    "tag": "neutral",
+    "text": "Na-flat ang tricycle sa tapat ng inyong bakuran. Tinulungan ng inyong mga arnisador ang driver magpalit ng gulong!",
+    "effects": {
+      "fameGain": 5
+    }
+  }
+]

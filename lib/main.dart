@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'domain/systems/data_loader.dart';
 import 'providers/game_state_provider.dart';
 import 'ui/main_dashboard.dart';
+import 'ui/widgets/pixel_viewport.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await DataLoader.loadAllData();
   runApp(const BastoneroApp());
 }
 
@@ -21,7 +24,7 @@ class BastoneroApp extends StatelessWidget {
         theme: ThemeData(
           brightness: Brightness.dark,
           scaffoldBackgroundColor: const Color(0xFF0F172A),
-          fontFamily: 'monospace',
+          fontFamily: 'Silkscreen',
           colorScheme: const ColorScheme.dark(
             primary: Color(0xFFF59E0B),
             secondary: Color(0xFF38BDF8),
@@ -31,13 +34,15 @@ class BastoneroApp extends StatelessWidget {
             style: ElevatedButton.styleFrom(
               elevation: 0,
               textStyle: const TextStyle(
-                fontFamily: 'monospace',
+                fontFamily: 'Silkscreen',
                 fontWeight: FontWeight.bold,
               ),
             ),
           ),
         ),
-        home: const MainDashboard(),
+        home: const PixelViewport(
+          child: MainDashboard(),
+        ),
       ),
     );
   }

@@ -3,6 +3,7 @@ import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import '../../models/fighter_model.dart';
 import '../arnis_match_game.dart';
+import '../asset_registry.dart';
 import 'floating_text.dart';
 
 enum FighterAnimState {
@@ -49,6 +50,9 @@ class FighterComponent extends PositionComponent {
   // Dodge afterimage ghost position
   Vector2? dodgeGhostPos;
   double dodgeGhostOpacity = 0.0;
+
+  // Whether strikes are controlled by headless deterministic MatchEngine
+  bool isDrivenByEngine = true;
 
   // Reference to opponent
   FighterComponent? opponent;
@@ -204,10 +208,16 @@ class FighterComponent extends PositionComponent {
       position.x += dir * 25.0 * dt;
       animState = FighterAnimState.stepping;
     } else {
-      if (strikeCooldown <= 0) {
+      if (!isDrivenByEngine && strikeCooldown <= 0) {
         _attemptStrikeOrDefense();
       } else {
-        if (animState != FighterAnimState.blocking) {
+        if (animState != FighterAnimState.blocking &&
+            animState != FighterAnimState.striking &&
+            animState != FighterAnimState.signatureAbaniko &&
+            animState != FighterAnimState.signatureHeavenSix &&
+            animState != FighterAnimState.hitStun &&
+            animState != FighterAnimState.knockdown &&
+            animState != FighterAnimState.victory) {
           animState = FighterAnimState.idle;
         }
       }
@@ -337,6 +347,22 @@ class FighterComponent extends PositionComponent {
     onHitLanded?.call(fromAttacker, damage, isCrit);
   }
 
+  void performVisualStrike({bool isSpecial = false}) {
+    if (isSpecial) {
+      animState = fighter.style == FighterStyle.soloBaston
+          ? FighterAnimState.signatureAbaniko
+          : FighterAnimState.signatureHeavenSix;
+    } else {
+      animState = FighterAnimState.striking;
+    }
+    strikeProgress = 0.0;
+  }
+
+  void performVisualBlock() {
+    animState = FighterAnimState.blocking;
+    strikeCooldown = 0.4;
+  }
+
   void triggerClinch() {
     animState = FighterAnimState.clinch;
     if (opponent != null) {
@@ -433,140 +459,44 @@ class FighterComponent extends PositionComponent {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2;
 
-    final skinPalette = [
-      const Color(0xFFC68642), // Kayumanggi
-      const Color(0xFFA56637), // Moreno
-      const Color(0xFFF2B880), // Tisoy
-    ];
-    final defaultSkin = fighter.isPlayer
-        ? skinPalette[fighter.skinIndex.clamp(0, skinPalette.length - 1)]
-        : const Color(0xFFF2B880);
+    final skin = Paint()..color = const Color(0xFFF2B880);
 
-    final skin = Paint()
-      ..color = animState == FighterAnimState.hitStun
-          ? const Color(0xFFE6482E)
-          : defaultSkin;
+    // High-visibility character placeholder box via AssetRegistry
+    final baseColor = fighter.isPlayer ? const Color(0xFF38BDF8) : const Color(0xFFDC2626);
+    final isStunned = animState == FighterAnimState.hitStun;
+    final bodyColor = isStunned ? const Color(0xFFE6482E) : baseColor;
 
-    final headbandPalette = [
-      const Color(0xFFDC2626), // Pula
-      const Color(0xFF2563EB), // Asul
-      const Color(0xFFFACC15), // Dilaw
-      const Color(0xFF16A34A), // Berde
-      const Color(0xFF1E293B), // Itim
-    ];
-    final activeBeltColor = fighter.isPlayer
-        ? headbandPalette[fighter.headbandColorIndex.clamp(0, headbandPalette.length - 1)]
-        : headbandColor;
-
-    // Legs & Shoes
-    final pants = Paint()..color = const Color(0xFF1E293B);
-    final shoes = Paint()..color = activeBeltColor;
-
-    canvas.drawRect(Rect.fromLTWH(12, 54 + bounceY, 8, 20), pants);
-    canvas.drawRect(Rect.fromLTWH(12, 54 + bounceY, 8, 20), outline);
-    canvas.drawRect(Rect.fromLTWH(10, 72 + bounceY, 12, 6), shoes);
-    canvas.drawRect(Rect.fromLTWH(10, 72 + bounceY, 12, 6), outline);
-
-    canvas.drawRect(Rect.fromLTWH(26, 54 + bounceY, 8, 20), pants);
-    canvas.drawRect(Rect.fromLTWH(26, 54 + bounceY, 8, 20), outline);
-    canvas.drawRect(Rect.fromLTWH(26, 72 + bounceY, 12, 6), shoes);
-    canvas.drawRect(Rect.fromLTWH(26, 72 + bounceY, 12, 6), outline);
-
-    // Torso / Sando
-    final body = Paint()..color = sandoColor;
-    canvas.drawRect(Rect.fromLTWH(13, 26 + bounceY, 22, 28), body);
-    canvas.drawRect(Rect.fromLTWH(13, 26 + bounceY, 22, 28), outline);
-
-    // Sash Belt
-    final belt = Paint()..color = activeBeltColor;
-    canvas.drawRect(Rect.fromLTWH(12, 48 + bounceY, 24, 6), belt);
-    canvas.drawRect(Rect.fromLTWH(12, 48 + bounceY, 24, 6), outline);
-
-    // Neck & Head
-    canvas.drawRect(Rect.fromLTWH(21, 20 + bounceY, 6, 8), skin);
-    canvas.drawRect(Rect.fromLTWH(14, 4 + bounceY, 20, 18), skin);
-    canvas.drawRect(Rect.fromLTWH(14, 4 + bounceY, 20, 18), outline);
-
-    // Hair Style
-    final hair = Paint()..color = const Color(0xFF171717);
-    if (fighter.hairIndex == 1) {
-      // Crewcut
-      canvas.drawRect(Rect.fromLTWH(14, 2 + bounceY, 20, 5), hair);
-    } else if (fighter.hairIndex == 2) {
-      // Ponytail knot
-      canvas.drawRect(Rect.fromLTWH(13, 2 + bounceY, 22, 6), hair);
-      canvas.drawRect(Rect.fromLTWH(6, 6 + bounceY, 7, 7), hair);
-      canvas.drawRect(Rect.fromLTWH(6, 6 + bounceY, 7, 7), outline);
-    } else {
-      // Spiky anime hair
-      canvas.drawRect(Rect.fromLTWH(13, 2 + bounceY, 22, 6), hair);
-      canvas.drawRect(Rect.fromLTWH(15, -1 + bounceY, 4, 4), hair);
-      canvas.drawRect(Rect.fromLTWH(22, -2 + bounceY, 4, 5), hair);
-      canvas.drawRect(Rect.fromLTWH(29, -1 + bounceY, 4, 4), hair);
-    }
-
-    // Headband
-    canvas.drawRect(Rect.fromLTWH(13, 7 + bounceY, 22, 5), belt);
-    // Headband knot tails trailing behind
-    canvas.drawRect(Rect.fromLTWH(8, 9 + bounceY, 6, 4), belt);
-    canvas.drawRect(Rect.fromLTWH(5, 12 + bounceY, 4, 5), belt);
-
-    // Expressive Kairosoft Eyes (with white sclera and shine!)
-    final eyeWhite = Paint()..color = Colors.white;
-    final eyePupil = Paint()..color = Colors.black;
-    canvas.drawRect(Rect.fromLTWH(26, 13 + bounceY, 5, 4), eyeWhite);
-    canvas.drawRect(Rect.fromLTWH(28, 14 + bounceY, 3, 3), eyePupil);
-
-    // Subtle mouth line
-    final mouth = Paint()..color = const Color(0xFF8B4513);
-    canvas.drawRect(Rect.fromLTWH(27, 19 + bounceY, 3, 1.5), mouth);
+    AssetRegistry.drawPlaceholder(
+      canvas,
+      Rect.fromLTWH(12, 16 + bounceY, 24, 48),
+      label: fighter.name.split(' ').first.toUpperCase(),
+      color: bodyColor,
+      fontSize: 6.5,
+    );
 
     // Bastons & Arms
     if (animState == FighterAnimState.victory) {
-      _renderVictoryArms(canvas, bounceY, skin, outline);
+      _renderVictoryArms(canvas, bounceY, outline);
     } else {
       _renderBastonsAndArms(canvas, bounceY, skin, outline);
     }
   }
 
-  void _renderVictoryArms(Canvas canvas, double bounceY, Paint skin, Paint outline) {
+  void _renderVictoryArms(Canvas canvas, double bounceY, Paint outline) {
     final stickPaint = _getWeaponPaint();
-
-    // Left Arm Raised in Victory
-    canvas.drawRect(Rect.fromLTWH(6, 6 + bounceY, 8, 20), skin);
-    canvas.drawRect(Rect.fromLTWH(6, 6 + bounceY, 8, 20), outline);
-    canvas.drawRect(Rect.fromLTWH(8, -16 + bounceY, 5, 26), stickPaint);
-    canvas.drawRect(Rect.fromLTWH(8, -16 + bounceY, 5, 26), outline);
-
-    // Right Arm Raised in Victory
-    canvas.drawRect(Rect.fromLTWH(34, 6 + bounceY, 8, 20), skin);
-    canvas.drawRect(Rect.fromLTWH(34, 6 + bounceY, 8, 20), outline);
-    canvas.drawRect(Rect.fromLTWH(35, -16 + bounceY, 5, 26), stickPaint);
-    canvas.drawRect(Rect.fromLTWH(35, -16 + bounceY, 5, 26), outline);
+    canvas.drawRect(Rect.fromLTWH(8, -12 + bounceY, 5, 24), stickPaint);
+    canvas.drawRect(Rect.fromLTWH(8, -12 + bounceY, 5, 24), outline);
+    canvas.drawRect(Rect.fromLTWH(35, -12 + bounceY, 5, 24), stickPaint);
+    canvas.drawRect(Rect.fromLTWH(35, -12 + bounceY, 5, 24), outline);
   }
 
   void _renderKnockdown(Canvas canvas) {
-    final outline = Paint()
-      ..color = const Color(0xFF1A1C2C)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
-    final skin = Paint()..color = const Color(0xFFF2B880);
-    final pants = Paint()..color = const Color(0xFF1E293B);
-    final body = Paint()..color = sandoColor;
-    final shoes = Paint()..color = const Color(0xFFDC2626);
-
-    // Fallen flat on mat
-    canvas.drawRect(const Rect.fromLTWH(4, 62, 14, 12), skin);
-    canvas.drawRect(const Rect.fromLTWH(4, 62, 14, 12), outline);
-
-    canvas.drawRect(const Rect.fromLTWH(18, 64, 18, 11), body);
-    canvas.drawRect(const Rect.fromLTWH(18, 64, 18, 11), outline);
-
-    canvas.drawRect(const Rect.fromLTWH(36, 66, 16, 9), pants);
-    canvas.drawRect(const Rect.fromLTWH(36, 66, 16, 9), outline);
-
-    canvas.drawRect(const Rect.fromLTWH(50, 68, 8, 7), shoes);
-    canvas.drawRect(const Rect.fromLTWH(50, 68, 8, 7), outline);
+    AssetRegistry.drawPlaceholder(
+      canvas,
+      const Rect.fromLTWH(4, 56, 40, 20),
+      label: 'KO',
+      color: const Color(0xFFEF4444),
+    );
   }
 
   void _renderBastonsAndArms(Canvas canvas, double bounceY, Paint skin, Paint outline) {

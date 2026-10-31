@@ -56,7 +56,7 @@ void main() {
     });
 
     test('Gym Facilities: Building, Upgrades, Cutaway Expansion, and Synergies', () {
-      state.pesos = 5000; // grant testing funds
+      state.pesos = 10000; // grant testing funds for multi-floor expansion
 
       // Starter slots: 2
       expect(state.maxSlots, 2);

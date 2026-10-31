@@ -1,0 +1,172 @@
+[
+  {
+    "id": "rack_yantok",
+    "name": "Rack ng Yantok",
+    "cost": 200,
+    "width": 2,
+    "category": "weapon",
+    "statBonus": "diskarte",
+    "bonusPercent": 0.05,
+    "description": "Kailangan sa pagsasanay sa baston. Kasya ang 2 estudyante."
+  },
+  {
+    "id": "sako_buhangin",
+    "name": "Sako ng Buhangin",
+    "cost": 300,
+    "width": 2,
+    "category": "training",
+    "statBonus": "lakas",
+    "bonusPercent": 0.10,
+    "description": "Matatag na sako ng buhangin para sa lakas ng palo (+10% Lakas)."
+  },
+  {
+    "id": "poste_kawayan",
+    "name": "Poste ng Kawayan",
+    "cost": 250,
+    "width": 1,
+    "category": "training",
+    "statBonus": "diskarte",
+    "bonusPercent": 0.10,
+    "description": "Manipis at matibay na poste para sa tamang anggulo (+10% Diskarte)."
+  },
+  {
+    "id": "pad_target",
+    "name": "Pad / Target",
+    "cost": 350,
+    "width": 2,
+    "category": "training",
+    "statBonus": "bilis",
+    "bonusPercent": 0.10,
+    "description": "Mabilisang target para sa reflexes at bilis (+10% Bilis)."
+  },
+  {
+    "id": "gulong_tire",
+    "name": "Gulong (Tire Dummy)",
+    "cost": 400,
+    "width": 2,
+    "category": "training",
+    "statBonus": "lakas",
+    "bonusPercent": 0.15,
+    "description": "Makapal na gulong para sa bigat ng bagsak (+15% Lakas)."
+  },
+  {
+    "id": "salamin",
+    "name": "Salamin",
+    "cost": 500,
+    "width": 3,
+    "category": "training",
+    "statBonus": "salag",
+    "bonusPercent": 0.10,
+    "description": "Para sa tamang Anyo at posture sa depensa (+10% Salag)."
+  },
+  {
+    "id": "banig_mat",
+    "name": "Banig (Sparring Mat)",
+    "cost": 150,
+    "width": 3,
+    "category": "sparring",
+    "statBonus": "all",
+    "bonusPercent": 0.05,
+    "description": "Simpleng banig na kawayan para sa sparring ng dalawang estudyante."
+  },
+  {
+    "id": "ring_kawayan",
+    "name": "Ring na Kawayan",
+    "cost": 3500,
+    "width": 5,
+    "category": "sparring",
+    "statBonus": "all",
+    "bonusPercent": 0.20,
+    "description": "Malaking ring na kawayan (+20% spar gains, bukas sa Inter-Bayan)."
+  },
+  {
+    "id": "tapayan_tubig",
+    "name": "Tapayan ng Tubig",
+    "cost": 100,
+    "width": 1,
+    "category": "recovery",
+    "statBonus": "fatigue",
+    "bonusPercent": 0.05,
+    "description": "Malamig na tubig sa tapayan (+5 fatigue recovery kada linggo)."
+  },
+  {
+    "id": "duyan",
+    "name": "Duyan",
+    "cost": 300,
+    "width": 2,
+    "category": "recovery",
+    "statBonus": "fatigue",
+    "bonusPercent": 0.10,
+    "description": "Masarap na higaan sa duyan (+10 fatigue recovery sa Hinga)."
+  },
+  {
+    "id": "mesa_aklat",
+    "name": "Mesa at Aklat",
+    "cost": 400,
+    "width": 2,
+    "category": "study",
+    "statBonus": "grado",
+    "bonusPercent": 0.10,
+    "description": "Mesang aralan sa lilim para mapanatili ang grado (+10% Aral)."
+  },
+  {
+    "id": "bentilador",
+    "name": "Bentilador",
+    "cost": 600,
+    "width": 1,
+    "category": "comfort",
+    "statBonus": "morale",
+    "bonusPercent": 0.02,
+    "description": "Preskong hangin para sa buong palapag (+2 Gana / linggo)."
+  },
+  {
+    "id": "estante_tropeo",
+    "name": "Estante ng Tropeo",
+    "cost": 800,
+    "width": 3,
+    "category": "prestige",
+    "statBonus": "fame",
+    "bonusPercent": 0.05,
+    "description": "Lagayan ng mga napanalunang tropeo at parangal (+1 Dangal / linggo)."
+  },
+  {
+    "id": "tarpaulin_kampo",
+    "name": "Tarpaulin ng Kampo",
+    "cost": 300,
+    "width": 3,
+    "category": "recruitment",
+    "statBonus": "recruits",
+    "bonusPercent": 0.05,
+    "description": "Tarpaulin sa labas ng bakuran (+1 recruitment chance / buwan)."
+  },
+  {
+    "id": "sari_sari_store",
+    "name": "Sari-sari Store",
+    "cost": 1200,
+    "width": 4,
+    "category": "income",
+    "statBonus": "income",
+    "bonusPercent": 0.10,
+    "description": "Nagbebenta ng buko juice at meryenda (+P60/linggo at +3 Gana)."
+  },
+  {
+    "id": "bangko",
+    "name": "Bangko",
+    "cost": 50,
+    "width": 1,
+    "category": "comfort",
+    "statBonus": "none",
+    "bonusPercent": 0.0,
+    "description": "Simpleng upuang kahoy para sa mga nanonood."
+  },
+  {
+    "id": "parol",
+    "name": "Parol",
+    "cost": 150,
+    "width": 1,
+    "category": "seasonal",
+    "statBonus": "morale",
+    "bonusPercent": 0.02,
+    "description": "Makulay na parol tuwing Disyembre (+2 Gana tuwing kapaskuhan)."
+  }
+]

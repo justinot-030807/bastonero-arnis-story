@@ -1,0 +1,79 @@
+[
+  {
+    "id": "abaniko",
+    "name": "Abaniko",
+    "style": "SoloBaston",
+    "requiredStat": "diskarte",
+    "requiredValue": 20,
+    "hitBonus": 0.10,
+    "damageMultiplier": 1.0,
+    "hits": 1,
+    "description": "Mabilis na paypay ng baston. +10% hit chance."
+  },
+  {
+    "id": "redonda",
+    "name": "Redonda",
+    "style": "SoloBaston",
+    "requiredStat": "lakas",
+    "requiredValue": 35,
+    "hitBonus": 0.0,
+    "damageMultiplier": 0.60,
+    "hits": 2,
+    "description": "Tuluy-tuloy na paikot na hataw. 2 palo sa 60% lakas."
+  },
+  {
+    "id": "sinawali",
+    "name": "Sinawali Flurry",
+    "style": "DobleBaston",
+    "requiredStat": "bilis",
+    "requiredValue": 30,
+    "hitBonus": 0.05,
+    "damageMultiplier": 0.40,
+    "hits": 3,
+    "description": "Paghahabi ng dalawang baston. 3 mabilis na patama sa 40% bawat isa."
+  },
+  {
+    "id": "tusok",
+    "name": "Tusok",
+    "style": "EspadaYDaga",
+    "requiredStat": "diskarte",
+    "requiredValue": 40,
+    "hitBonus": 0.05,
+    "damageMultiplier": 1.15,
+    "hits": 1,
+    "description": "Tusok na sumusuot sa depensa, binalewala ang 30% ng Salag."
+  },
+  {
+    "id": "siko",
+    "name": "Siko at Pasok",
+    "style": "EspadaYDaga",
+    "requiredStat": "salag",
+    "requiredValue": 45,
+    "hitBonus": 0.0,
+    "damageMultiplier": 0.90,
+    "hits": 1,
+    "description": "Malapitang siko na nagpapatigil ng galaw ng kalaban."
+  },
+  {
+    "id": "hubad",
+    "name": "Hubad at Sabong Lock",
+    "style": "EspadaYDaga",
+    "requiredStat": "diskarte",
+    "requiredValue": 55,
+    "hitBonus": 0.15,
+    "damageMultiplier": 0.70,
+    "hits": 1,
+    "description": "Pag-ipit ng baston ng kalaban upang hindi makatira ng 3 segundo."
+  },
+  {
+    "id": "abaniko_tres_puntas",
+    "name": "Abaniko Tres Puntas",
+    "style": "SoloBaston",
+    "requiredStat": "diskarte",
+    "requiredValue": 65,
+    "hitBonus": 0.20,
+    "damageMultiplier": 1.80,
+    "hits": 3,
+    "description": "Tunay na sining ng tatlong anggulo: ulo, tadyang, at tuhod. 2x finisher sa perfect tap."
+  }
+]

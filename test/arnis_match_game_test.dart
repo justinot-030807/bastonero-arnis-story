@@ -73,5 +73,27 @@ void main() {
       expect(game.opponent.currentHp, lessThan(initialOpponentHp));
       expect(game.opponent.isDisarmed, isTrue);
     });
+
+    test('Finisher Tap (TAMAAN!) resolution deals signature damage and updates engine stats', () async {
+      final player = FighterModel(name: 'Hero Player', power: 30, speed: 20);
+      final opponent = FighterModel.createBertoRival();
+
+      final game = ArnisMatchGame(
+        playerFighter: player,
+        opponentFighter: opponent,
+      );
+      game.onGameResize(Vector2(800, 600));
+      await game.onLoad();
+
+      final initialOpponentHp = game.opponent.currentHp;
+
+      // Charge Puso to 100% and resolve Finisher Tap with Bullseye (0.50)
+      game.engine.player.pusoMeter = 100.0;
+      game.resolveFinisherTap(tapOffset: 0.50);
+
+      expect(game.opponent.currentHp, lessThan(initialOpponentHp));
+      expect(game.engine.player.pusoMeter, 0.0);
+      expect(game.engine.player.strikesLanded, greaterThan(0));
+    });
   });
 }

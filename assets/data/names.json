@@ -1,0 +1,40 @@
+{
+  "firstNamesMale": [
+    "Bayani", "Danilo", "Andres", "Crisanto", "Juan", "Emilio", "Mateo", "Lito", "Renato",
+    "Dodong", "Nonoy", "Cardo", "Benjie", "Kanor", "Bong", "Jessie", "Nestor", "Arnel"
+  ],
+  "firstNamesFemale": [
+    "Ligaya", "Mutya", "Tala", "Marilou", "Luningning", "Jasmin", "Rochelle", "Dalisay",
+    "Amihan", "Perla", "Mayumi", "Kristine", "Elena", "Rowena", "Grace", "Carmela"
+  ],
+  "lastNames": [
+    "Dalisay", "Santos", "Reyes", "Dela Cruz", "Bautista", "Mendoza", "Alcantara", "Villanueva",
+    "Dimagiba", "Magtanggol", "Silang", "Batungbakal", "Guinto", "Tolentino", "Aquino", "Mercado"
+  ],
+  "nicknames": [
+    "Bastonero", "Kidlat", "Agila", "Tigre", "Balisong", "Hagupit", "Bato", "Buwaya",
+    "Gintong Kamay", "Mabilis", "Talas", "Bagsik", "Ilog", "Bantay", "Kampilan", "Laban"
+  ],
+  "announcerLines": [
+    "REFEREE: Handa na ang dalawang arnisador sa court!",
+    "REFEREE: Laban!",
+    "Matinding hataw sa tadyang mula sa Red Corner!",
+    "Magandang salag gamit ang yantok!",
+    "Mabilis na pasok ng Abaniko!",
+    "Napakabilis na combo mula sa Sinawali!",
+    "Naiwasan ang tusok sa pamamagitan ng mabilis na hakbang!",
+    "Sabong! Nag-abot ang mga baston!",
+    "Tumunog ang yantok sa proteksyon ng katawan!",
+    "Umiinit ang bakbakan sa gitna ng court!",
+    "Nakatanggap ng mabigat na palo ang kalaban!",
+    "Naghahanap ng bukas na anggulo ang dalawang arnisador!",
+    "Malakas na sigaw ng Coach mula sa gilid!",
+    "Nalaglag ang baston! Agaw-baston!",
+    "Kritikal na patama sa balikat!",
+    "Depensang matibay! Walang nakakalusot na palo!",
+    "Huling tatlumpung segundo ng round!",
+    "Gigil na sumugod ang Red Corner!",
+    "Nayanig ang kalaban sa sunod-sunod na palo!",
+    "Palakpakan at hiyawan ang mga manonood sa bleachers!"
+  ]
+}

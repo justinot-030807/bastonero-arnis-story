@@ -1,17 +1,25 @@
+// lib/ui/components/live_bakuran_camp.dart
+// Multi-Floor Cutaway Camp View (Kairosoft-style side view building with street & yard).
+
 import 'dart:math';
 import 'package:flutter/material.dart';
-import '../../models/facility_model.dart';
+import '../../domain/models/equipment.dart';
+import '../../domain/models/student.dart';
+import '../../game/asset_registry.dart';
 import '../../providers/game_state_provider.dart';
+import '../overlays/estudyante_modal.dart';
+import '../overlays/itayo_modal.dart';
 import '../retro_ui.dart';
+import '../theme.dart';
 
 class LiveBakuranCampView extends StatefulWidget {
   final GameStateProvider gameState;
-  final void Function(int slotIndex) onSlotTapped;
+  final void Function(int slotIndex)? onSlotTapped;
 
   const LiveBakuranCampView({
     super.key,
     required this.gameState,
-    required this.onSlotTapped,
+    this.onSlotTapped,
   });
 
   @override
@@ -62,13 +70,13 @@ class _LiveBakuranCampViewState extends State<LiveBakuranCampView> with SingleTi
       _bayaniActionState = rnd.nextInt(4);
 
       if (_bayaniActionState == 1) {
-        // Striking Tire Dummy
+        // Striking Dummy
         _bayaniX = 0.22;
         _bayaniBubble = 'Hataw!';
         _floatingStat = '+3 LAKAS';
         _floatingStatY = 0.0;
       } else if (_bayaniActionState == 2) {
-        // Studying under Mango Tree
+        // Studying
         _bayaniX = 0.74;
         _bayaniBubble = 'Aral muna!';
         _floatingStat = '+2 GRADO';
@@ -111,151 +119,184 @@ class _LiveBakuranCampViewState extends State<LiveBakuranCampView> with SingleTi
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final state = widget.gameState;
-
-    return RetroBox(
-      title: '${state.fighter.gymName.toUpperCase()} (BAKURAN TRAINING CAMP)',
-      titleTrailing: state.maxSlots < 6
-          ? InkWell(
-              onTap: state.pesos >= 1800 ? () => state.expandGymSlots() : null,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: state.pesos >= 1800 ? const Color(0xFF16A34A) : const Color(0xFF334155),
-                  border: Border.all(color: const Color(0xFFF4B41B)),
-                ),
-                child: const Text(
-                  'EXPAND 2ND FLOOR (P1,800)',
-                  style: TextStyle(color: Colors.white, fontSize: 8, fontFamily: 'monospace', fontWeight: FontWeight.bold),
-                ),
-              ),
-            )
-          : null,
-      padding: EdgeInsets.zero,
-      child: Stack(
-        children: [
-          // 1. SIDE-VIEW CUTAWAY CANVAS (PROVINCIAL BAKURAN SCENERY)
-          SizedBox(
-            height: 250,
-            width: double.infinity,
-            child: CustomPaint(
-              painter: _AuthenticBakuranCampPainter(
-                maxSlots: state.maxSlots,
-                slots: state.slots,
-                bayaniX: _bayaniX,
-                bayaniAction: _bayaniActionState,
-                coachX: _coachX,
-                tricycleX: _tricycleX,
-                pedestrianX: _pedestrianX,
-                animTick: _animController.value,
-              ),
-            ),
-          ),
-
-          // 2. SPEECH BUBBLE & FLOATING STAT GAINS OVERLAY
-          Positioned(
-            left: 20 + (_bayaniX * 240),
-            top: 100 - _floatingStatY,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (_floatingStat.isNotEmpty)
-                  Container(
-                    margin: const EdgeInsets.only(bottom: 2),
-                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                    color: const Color(0xFFFDE047),
-                    child: Text(
-                      _floatingStat,
-                      style: const TextStyle(
-                        color: Color(0xFF1A1C2C),
-                        fontSize: 8,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: 'monospace',
-                      ),
-                    ),
-                  ),
-                _buildSpeechBubble(_bayaniBubble, const Color(0xFFDC2626)),
-              ],
-            ),
-          ),
-
-          // 3. COACH SPEECH BUBBLE OVERLAY
-          Positioned(
-            left: 20 + (_coachX * 240),
-            top: 110,
-            child: _buildSpeechBubble(_coachBubble, const Color(0xFF16A34A)),
-          ),
-
-          // 4. INTERACTIVE FACILITY TAP BOXES
-          Positioned.fill(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final w = constraints.maxWidth;
-                final h = constraints.maxHeight;
-                return Stack(
-                  children: [
-                    for (int i = 0; i < state.maxSlots; i++)
-                      _buildSlotTapZone(
-                        slotIndex: i,
-                        rect: _getSlotRect(i, state.maxSlots, w, h),
-                        facility: state.slots[i],
-                      ),
-                  ],
-                );
-              },
-            ),
-          ),
-        ],
+  void _openItayoModal(int floor) {
+    showDialog(
+      context: context,
+      builder: (ctx) => ItayoModal(
+        gameState: widget.gameState,
+        initialFloor: floor,
       ),
     );
   }
 
-  Rect _getSlotRect(int slot, int maxSlots, double w, double h) {
-    final slotW = (w - 24) / (maxSlots > 2 ? 3 : 2);
-    final row = slot ~/ (maxSlots > 2 ? 3 : 2);
-    final col = slot % (maxSlots > 2 ? 3 : 2);
-    final y = row == 0 ? h * 0.40 : h * 0.08;
-    return Rect.fromLTWH(12 + (col * slotW), y, slotW - 6, h * 0.36);
+  void _openEstudyanteModal([Student? student]) {
+    showDialog(
+      context: context,
+      builder: (ctx) => EstudyanteModal(
+        gameState: widget.gameState,
+        initialSelectedStudent: student,
+      ),
+    );
   }
 
-  Widget _buildSlotTapZone({
-    required int slotIndex,
-    required Rect rect,
-    required FacilityModel? facility,
-  }) {
-    return Positioned(
-      left: rect.left,
-      top: rect.top,
-      width: rect.width,
-      height: rect.height,
-      child: GestureDetector(
-        onTap: () => widget.onSlotTapped(slotIndex),
-        child: Container(
-          margin: const EdgeInsets.all(2),
-          decoration: BoxDecoration(
-            border: Border.all(
-              color: facility != null
-                  ? const Color(0xFFF4B41B).withValues(alpha: 0.35)
-                  : const Color(0xFF64748B).withValues(alpha: 0.3),
-              width: 1.2,
-            ),
-            color: Colors.transparent,
-          ),
-          child: Align(
-            alignment: Alignment.topRight,
+  @override
+  Widget build(BuildContext context) {
+    final state = widget.gameState;
+    final floors = state.unlockedFloors;
+
+    // Dynamic height: 75px per floor + 40px roof/sky + 50px yard & street
+    final totalHeight = 40.0 + (floors * 70.0) + 70.0;
+
+    return RetroBox(
+      title: '${state.fighter.gymName.toUpperCase()} (BAKURAN TRAINING CAMP)',
+      titleTrailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // ESTUDYANTE BUTTON
+          InkWell(
+            onTap: () => _openEstudyanteModal(),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-              color: const Color(0xFF0F172A),
+              margin: const EdgeInsets.only(right: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0284C7),
+                border: Border.all(color: const Color(0xFF1A1C2C)),
+              ),
               child: Text(
-                facility != null ? 'L${facility.level}' : '+SLOT ${slotIndex + 1}',
+                'ESTUDYANTE (${state.students.length})',
                 style: const TextStyle(
-                  color: Color(0xFFFDE047),
-                  fontSize: 7,
+                  color: Colors.white,
+                  fontSize: 7.5,
+                  fontFamily: 'Silkscreen',
                   fontWeight: FontWeight.bold,
-                  fontFamily: 'monospace',
                 ),
+              ),
+            ),
+          ),
+
+          // ITAYO (BUILD) BUTTON
+          InkWell(
+            onTap: () => _openItayoModal(1),
+            child: Container(
+              margin: const EdgeInsets.only(right: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF59E0B),
+                border: Border.all(color: const Color(0xFF1A1C2C)),
+              ),
+              child: const Text(
+                'ITAYO (BUILD)',
+                style: TextStyle(
+                  color: Color(0xFF1A1C2C),
+                  fontSize: 7.5,
+                  fontFamily: 'Silkscreen',
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+
+          // EXPAND FLOOR BUTTON
+          if (floors < 5) ...[
+            InkWell(
+              onTap: state.canExpandFloor ? () => state.expandFloor() : null,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: state.canExpandFloor ? const Color(0xFF16A34A) : const Color(0xFF334155),
+                  border: Border.all(color: RetroColors.gold),
+                ),
+                child: Text(
+                  'EXPAND ${floors + 1}F (P${state.nextFloorCost})',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 7.5,
+                    fontFamily: 'Silkscreen',
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+      padding: EdgeInsets.zero,
+      child: ClipRRect(
+        child: SizedBox(
+          height: min(totalHeight, 340.0),
+          child: SingleChildScrollView(
+            reverse: true, // Scroll from ground up
+            child: SizedBox(
+              height: totalHeight,
+              width: double.infinity,
+              child: Stack(
+                children: [
+                  // 1. CUTAWAY MULTI-FLOOR CANVAS
+                  Positioned.fill(
+                    child: CustomPaint(
+                      painter: _MultiFloorCutawayCampPainter(
+                        unlockedFloors: floors,
+                        placements: state.placements,
+                        camp: state.camp,
+                        students: state.students,
+                        bayaniX: _bayaniX,
+                        bayaniAction: _bayaniActionState,
+                        coachX: _coachX,
+                        tricycleX: _tricycleX,
+                        pedestrianX: _pedestrianX,
+                        animTick: _animController.value,
+                      ),
+                    ),
+                  ),
+
+                  // 2. INTERACTIVE TAP REGIONS PER FLOOR
+                  for (int f = 1; f <= floors; f++) ...[
+                    Positioned(
+                      left: 10,
+                      top: 40.0 + ((floors - f) * 70.0),
+                      width: 220,
+                      height: 64,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.translucent,
+                        onTap: () => _openItayoModal(f),
+                      ),
+                    ),
+                  ],
+
+                  // 3. BAYANI SPEECH & FLOATING STAT OVERLAY (GROUND FLOOR)
+                  Positioned(
+                    left: 20 + (_bayaniX * 220),
+                    bottom: 74 + _floatingStatY,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (_floatingStat.isNotEmpty)
+                          Container(
+                            margin: const EdgeInsets.only(bottom: 2),
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                            color: const Color(0xFFFDE047),
+                            child: Text(
+                              _floatingStat,
+                              style: const TextStyle(
+                                color: Color(0xFF1A1C2C),
+                                fontSize: 7,
+                                fontWeight: FontWeight.bold,
+                                fontFamily: 'Silkscreen',
+                              ),
+                            ),
+                          ),
+                        _buildSpeechBubble(_bayaniBubble, const Color(0xFFDC2626)),
+                      ],
+                    ),
+                  ),
+
+                  // 4. COACH SPEECH OVERLAY
+                  Positioned(
+                    left: 20 + (_coachX * 220),
+                    bottom: 74,
+                    child: _buildSpeechBubble(_coachBubble, const Color(0xFF16A34A)),
+                  ),
+                ],
               ),
             ),
           ),
@@ -266,7 +307,7 @@ class _LiveBakuranCampViewState extends State<LiveBakuranCampView> with SingleTi
 
   Widget _buildSpeechBubble(String text, Color borderColor) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
       decoration: BoxDecoration(
         color: const Color(0xFFF4ECE1),
         border: Border.all(color: borderColor, width: 1.5),
@@ -278,19 +319,21 @@ class _LiveBakuranCampViewState extends State<LiveBakuranCampView> with SingleTi
         text,
         style: const TextStyle(
           color: Color(0xFF1A1C2C),
-          fontSize: 7.5,
+          fontSize: 7.0,
           fontWeight: FontWeight.bold,
-          fontFamily: 'monospace',
+          fontFamily: 'Silkscreen',
         ),
       ),
     );
   }
 }
 
-/// CustomPainter that renders a rich, authentic Filipino Provincial Backyard Camp
-class _AuthenticBakuranCampPainter extends CustomPainter {
-  final int maxSlots;
-  final List<FacilityModel?> slots;
+/// CustomPainter rendering multi-floor stacked building with street & yard
+class _MultiFloorCutawayCampPainter extends CustomPainter {
+  final int unlockedFloors;
+  final List<PlacedEquipment> placements;
+  final dynamic camp;
+  final List<Student> students;
   final double bayaniX;
   final int bayaniAction;
   final double coachX;
@@ -298,9 +341,11 @@ class _AuthenticBakuranCampPainter extends CustomPainter {
   final double pedestrianX;
   final double animTick;
 
-  _AuthenticBakuranCampPainter({
-    required this.maxSlots,
-    required this.slots,
+  _MultiFloorCutawayCampPainter({
+    required this.unlockedFloors,
+    required this.placements,
+    required this.camp,
+    required this.students,
     required this.bayaniX,
     required this.bayaniAction,
     required this.coachX,
@@ -314,288 +359,305 @@ class _AuthenticBakuranCampPainter extends CustomPainter {
     final w = size.width;
     final h = size.height;
 
-    final skyH = h * 0.36;
-    final groundY = h * 0.40;
-    final streetY = h * 0.82;
-
-    // 1. SUNNY PROVINCE SKY & DISTANT MOUNTAINS
+    // 1. SKY & DISTANT MOUNTAIN (TOP)
     final skyPaint = Paint()..color = const Color(0xFF60A5FA);
-    canvas.drawRect(Rect.fromLTWH(0, 0, w, skyH), skyPaint);
+    canvas.drawRect(Rect.fromLTWH(0, 0, w, 40), skyPaint);
 
-    // Warm Sun
     final sunPaint = Paint()..color = const Color(0xFFFDE047);
-    canvas.drawRect(Rect.fromLTWH(w * 0.82, 12, 22, 22), sunPaint);
+    canvas.drawRect(Rect.fromLTWH(w * 0.84, 8, 16, 16), sunPaint);
 
-    // Fluffy Pixel Clouds
-    final cloudPaint = Paint()..color = Colors.white.withValues(alpha: 0.8);
-    canvas.drawRect(Rect.fromLTWH(w * 0.15, 14, 38, 10), cloudPaint);
-    canvas.drawRect(Rect.fromLTWH(w * 0.20, 8, 26, 12), cloudPaint);
-    canvas.drawRect(Rect.fromLTWH(w * 0.55, 18, 32, 8), cloudPaint);
-
-    // Distant Green Mountain Silhouette (Mt. Arayat style)
-    final mountainPaint = Paint()..color = const Color(0xFF15803D);
-    final mountainPath = Path()
-      ..moveTo(0, skyH)
-      ..lineTo(w * 0.25, skyH - 24)
-      ..lineTo(w * 0.45, skyH - 12)
-      ..lineTo(w * 0.70, skyH - 32)
-      ..lineTo(w, skyH - 8)
-      ..lineTo(w, skyH)
-      ..close();
-    canvas.drawPath(mountainPath, mountainPaint);
-
-    // Coconut Palm Trees with trunks from the ground (NOT floating blocks!)
-    _drawPalmTree(canvas, 18, skyH);
-    _drawPalmTree(canvas, w - 24, skyH);
-
-    // 2. WOODEN & BAMBOO TRAINING CAMP (BAKURAN PAVILION)
-    final campWallPaint = Paint()..color = const Color(0xFFD49B6A); // Warm bamboo/wood
-    final campRect = Rect.fromLTWH(8, groundY, w - 16, streetY - groundY);
-    canvas.drawRect(campRect, campWallPaint);
-
-    // Corrugated Tin Roof (Yero)
+    // 2. CORRUGATED TIN ROOF & SIGNBOARD
+    final roofY = 32.0;
     final roofPaint = Paint()..color = const Color(0xFF64748B);
     final roofTrim = Paint()..color = const Color(0xFF1E293B);
-    canvas.drawRect(Rect.fromLTWH(4, groundY - 8, w - 8, 8), roofPaint);
-    canvas.drawRect(Rect.fromLTWH(2, groundY - 2, w - 4, 3), roofTrim);
+    canvas.drawRect(Rect.fromLTWH(6, roofY, w - 12, 8), roofPaint);
+    canvas.drawRect(Rect.fromLTWH(4, roofY + 6, w - 8, 3), roofTrim);
 
-    // Bamboo Wall Slat Textures
-    final slatPaint = Paint()
-      ..color = const Color(0xFFB57D42)
-      ..strokeWidth = 1.2;
-    for (double sy = groundY + 12; sy < streetY; sy += 12) {
-      canvas.drawLine(Offset(10, sy), Offset(w - 10, sy), slatPaint);
+    // 3. STACKED MULTI-FLOORS (from top floor down to 1F)
+    final floorHeight = 70.0;
+    final startY = roofY + 8.0;
+
+    for (int f = unlockedFloors; f >= 1; f--) {
+      final floorIndexFromTop = unlockedFloors - f;
+      final fy = startY + (floorIndexFromTop * floorHeight);
+
+      _drawFloorRoom(canvas, w, fy, floorHeight, floorNum: f);
     }
 
-    // Heavy Wooden Support Posts
-    final postPaint = Paint()
-      ..color = const Color(0xFF8C532B)
-      ..strokeWidth = 4.0;
-    canvas.drawLine(Offset(14, groundY), Offset(14, streetY), postPaint);
-    canvas.drawLine(Offset(w - 14, groundY), Offset(w - 14, streetY), postPaint);
-    if (w > 300) {
-      canvas.drawLine(Offset(w * 0.5, groundY), Offset(w * 0.5, streetY), postPaint);
-    }
+    // 4. OUTDOOR YARD (BAKURAN LANE)
+    final yardY = startY + (unlockedFloors * floorHeight);
+    final yardHeight = 32.0;
+    final yardPaint = Paint()..color = const Color(0xFF8C532B);
+    canvas.drawRect(Rect.fromLTWH(6, yardY, w - 12, yardHeight), yardPaint);
 
-    // Dirt & Grass Ground Floor
-    final dirtFloorPaint = Paint()..color = const Color(0xFF8C532B);
-    canvas.drawRect(Rect.fromLTWH(8, streetY - 6, w - 16, 6), dirtFloorPaint);
+    // Palm Tree in Yard
+    _drawPalmTree(canvas, 18, yardY + yardHeight);
+    _drawPalmTree(canvas, w - 24, yardY + yardHeight);
 
-    // 3. PHYSICAL DETAILED PIXEL TRAINING FACILITIES
-    _drawDetailedFacilities(canvas, w, groundY, streetY);
-
-    // 4. AUTONOMOUS CHIBI CHARACTERS (BAYANI & COACH)
-    _drawChibiStudent(canvas, w, streetY - 6);
-    _drawChibiCoach(canvas, w, streetY - 6);
-
-    // 5. BOTTOM STREET VIEW: ASPHALT ROAD & SIDEWALK
+    // 5. BOTTOM STREET VIEW: SIDEWALK & ROAD
+    final streetY = yardY + yardHeight;
+    final sidewalkH = 8.0;
     final sidewalkPaint = Paint()..color = const Color(0xFF94A3B8);
-    canvas.drawRect(Rect.fromLTWH(0, streetY, w, 10), sidewalkPaint);
+    canvas.drawRect(Rect.fromLTWH(0, streetY, w, sidewalkH), sidewalkPaint);
 
+    final roadY = streetY + sidewalkH;
+    final roadH = h - roadY;
     final roadPaint = Paint()..color = const Color(0xFF1E293B);
-    canvas.drawRect(Rect.fromLTWH(0, streetY + 10, w, h - (streetY + 10)), roadPaint);
+    canvas.drawRect(Rect.fromLTWH(0, roadY, w, roadH), roadPaint);
 
-    // White dashed road lines
+    // Dashed road lines
     final dashPaint = Paint()
       ..color = const Color(0xFFF4ECE1)
       ..strokeWidth = 2.0;
     for (double dx = 10; dx < w; dx += 28) {
-      canvas.drawLine(Offset(dx, streetY + 22), Offset(dx + 14, streetY + 22), dashPaint);
+      canvas.drawLine(Offset(dx, roadY + 14), Offset(dx + 14, roadY + 14), dashPaint);
     }
 
-    // 6. ANIMATED RETRO TRICYCLE
-    _drawMovingTricycle(canvas, w, streetY + 10);
+    // 6. ANIMATED STREET LIFE
+    _drawMovingTricycle(canvas, w, roadY + 2);
+    _drawWalkingPedestrian(canvas, w, streetY - 6);
 
-    // 7. PEDESTRIAN ON SIDEWALK
-    _drawWalkingPedestrian(canvas, w, streetY - 10);
+    // 7. AUTONOMOUS CHARACTERS & STUDENTS
+    final groundFloorBottom = startY + (unlockedFloors * floorHeight);
+    _drawStudents(canvas, w, groundFloorBottom);
+    _drawChibiCoach(canvas, w, groundFloorBottom);
+  }
+
+  void _drawFloorRoom(Canvas canvas, double w, double topY, double height, {required int floorNum}) {
+    final roomRect = Rect.fromLTWH(8, topY, w - 16, height);
+
+    // Bamboo Wall fill
+    final wallPaint = Paint()..color = floorNum == 1 ? const Color(0xFFD49B6A) : const Color(0xFFC28854);
+    canvas.drawRect(roomRect, wallPaint);
+
+    // Wall slats
+    final slatPaint = Paint()
+      ..color = const Color(0xFFB57D42).withValues(alpha: 0.6)
+      ..strokeWidth = 1.0;
+    for (double sy = topY + 12; sy < topY + height; sy += 12) {
+      canvas.drawLine(Offset(10, sy), Offset(w - 10, sy), slatPaint);
+    }
+
+    // Wooden Support Pillars
+    final postPaint = Paint()
+      ..color = const Color(0xFF8C532B)
+      ..strokeWidth = 3.5;
+    canvas.drawLine(Offset(10, topY), Offset(10, topY + height), postPaint);
+    canvas.drawLine(Offset(w - 10, topY), Offset(w - 10, topY + height), postPaint);
+
+    // Floor Base Strip
+    final floorStrip = Paint()..color = const Color(0xFF564064);
+    canvas.drawRect(Rect.fromLTWH(8, topY + height - 4, w - 16, 4), floorStrip);
+
+    // Floor Level Label
+    final labelBg = Paint()..color = const Color(0xFF1E293B);
+    canvas.drawRect(Rect.fromLTWH(12, topY + 4, 38, 12), labelBg);
+    final tp = TextPainter(
+      text: TextSpan(
+        text: '$floorNum' 'F ROOM',
+        style: const TextStyle(
+          color: RetroColors.gold,
+          fontSize: 6.5,
+          fontWeight: FontWeight.bold,
+          fontFamily: 'Silkscreen',
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    tp.paint(canvas, Offset(14, topY + 5));
+
+    // Staircase on right side connecting to lower/upper floor
+    _drawStairs(canvas, w - 32, topY, height);
+
+    // 14-Tile Lane Equipment Rendering
+    _drawFloorEquipment(canvas, w, topY, height, floorNum);
+  }
+
+  void _drawFloorEquipment(Canvas canvas, double w, double topY, double height, int floorNum) {
+    final floorItems = placements.where((p) => p.floor == floorNum).toList();
+    final laneLeft = 14.0;
+    final laneWidth = w - 46.0; // Leaving room for stairs
+    final tileWidth = laneWidth / 14.0;
+
+    for (final p in floorItems) {
+      final meta = camp.getEquipmentMeta(p.equipmentId);
+      final itemWidthTiles = meta?.width ?? 2;
+      final x = laneLeft + (p.tileX * tileWidth);
+      final itemW = max(16.0, itemWidthTiles * tileWidth - 2.0);
+      final itemH = 26.0;
+      final y = topY + height - itemH - 4;
+
+      final label = meta?.name != null
+          ? (meta!.name.length > 5 ? meta.name.substring(0, 5).toUpperCase() : meta.name.toUpperCase())
+          : p.equipmentId.substring(0, min(5, p.equipmentId.length)).toUpperCase();
+
+      Color itemColor = const Color(0xFFF4B41B);
+      if (p.equipmentId.contains('yantok') || p.equipmentId.contains('baston')) {
+        itemColor = const Color(0xFF8C532B);
+      } else if (p.equipmentId.contains('sako') || p.equipmentId.contains('tire') || p.equipmentId.contains('gulong')) {
+        itemColor = const Color(0xFFDC2626);
+      } else if (p.equipmentId.contains('banig') || p.equipmentId.contains('ring')) {
+        itemColor = const Color(0xFF2563EB);
+      } else if (p.equipmentId.contains('sari') || p.equipmentId.contains('mesa')) {
+        itemColor = const Color(0xFF16A34A);
+      }
+
+      AssetRegistry.drawPlaceholder(
+        canvas,
+        Rect.fromLTWH(x, y, itemW, itemH),
+        label: label,
+        color: itemColor,
+        fontSize: 5.5,
+      );
+    }
+  }
+
+  void _drawStairs(Canvas canvas, double x, double topY, double height) {
+    final stairPaint = Paint()
+      ..color = const Color(0xFF8C532B)
+      ..strokeWidth = 2.0;
+
+    for (double sy = topY + 8; sy < topY + height - 6; sy += 8) {
+      canvas.drawLine(Offset(x, sy), Offset(x + 18, sy + 6), stairPaint);
+    }
   }
 
   void _drawPalmTree(Canvas canvas, double x, double baseGroundY) {
-    // Curved trunk from ground
     final trunk = Paint()
       ..color = const Color(0xFF8C532B)
-      ..strokeWidth = 4.0;
-    canvas.drawLine(Offset(x, baseGroundY), Offset(x + 4, baseGroundY - 32), trunk);
+      ..strokeWidth = 3.5;
+    canvas.drawLine(Offset(x, baseGroundY), Offset(x + 2, baseGroundY - 26), trunk);
 
-    // Palm Fronds
     final frondPaint = Paint()..color = const Color(0xFF16A34A);
-    canvas.drawRect(Rect.fromLTWH(x - 12, baseGroundY - 40, 16, 6), frondPaint);
-    canvas.drawRect(Rect.fromLTWH(x + 2, baseGroundY - 40, 16, 6), frondPaint);
-    canvas.drawRect(Rect.fromLTWH(x - 8, baseGroundY - 44, 20, 6), frondPaint);
+    canvas.drawRect(Rect.fromLTWH(x - 10, baseGroundY - 32, 12, 5), frondPaint);
+    canvas.drawRect(Rect.fromLTWH(x + 2, baseGroundY - 32, 12, 5), frondPaint);
   }
 
-  void _drawDetailedFacilities(Canvas canvas, double w, double topY, double bottomY) {
-    for (int i = 0; i < maxSlots; i++) {
-      final f = slots[i];
-      if (f == null) continue;
+  void _drawStudents(Canvas canvas, double w, double groundFloorY) {
+    final list = students.isNotEmpty ? students : [Student(id: 's1', name: 'BAYANI')];
+    final floorHeight = 70.0;
 
-      final cols = maxSlots > 2 ? 3 : 2;
-      final col = i % cols;
-      final slotSpan = (w - 24) / cols;
-      final cx = 12 + (col * slotSpan) + (slotSpan * 0.5);
-      final cy = bottomY - 14;
+    for (int i = 0; i < list.length; i++) {
+      final s = list[i];
+      // Distribute students across unlocked floors (0 = 1F, 1 = 2F, etc.)
+      final floorIndex = (i % unlockedFloors);
+      final floorGroundY = groundFloorY - (floorIndex * floorHeight);
 
-      switch (f.type) {
-        case FacilityType.gulongTarget:
-          // Heavy truck tires stacked on a solid wooden post
-          final post = Paint()
-            ..color = const Color(0xFF564064)
-            ..strokeWidth = 5;
-          canvas.drawLine(Offset(cx, cy), Offset(cx, cy - 42), post);
-
-          // 3 Stacked Rubber Tires with rope bindings
-          final tire = Paint()..color = const Color(0xFF1A1C2C);
-          final rim = Paint()..color = const Color(0xFF334155);
-          final rope = Paint()..color = const Color(0xFFF4B41B);
-
-          canvas.drawRect(Rect.fromLTWH(cx - 12, cy - 36, 24, 10), tire);
-          canvas.drawRect(Rect.fromLTWH(cx - 8, cy - 34, 16, 6), rim);
-
-          canvas.drawRect(Rect.fromLTWH(cx - 14, cy - 24, 28, 11), tire);
-          canvas.drawRect(Rect.fromLTWH(cx - 9, cy - 22, 18, 7), rim);
-
-          canvas.drawRect(Rect.fromLTWH(cx - 16, cy - 12, 32, 12), tire);
-          canvas.drawRect(Rect.fromLTWH(cx - 10, cy - 10, 20, 8), rim);
-
-          // Wrapped protective rope
-          canvas.drawRect(Rect.fromLTWH(cx - 3, cy - 35, 6, 34), rope);
-          break;
-
-        case FacilityType.studyDesk:
-          // Mango Tree Shade + Study Table & Books
-          final trunk = Paint()
-            ..color = const Color(0xFF8C532B)
-            ..strokeWidth = 6;
-          canvas.drawLine(Offset(cx - 16, cy), Offset(cx - 16, cy - 46), trunk);
-
-          // Lush Mango Canopy
-          final foliage = Paint()..color = const Color(0xFF15803D);
-          canvas.drawRect(Rect.fromLTWH(cx - 36, cy - 56, 44, 24), foliage);
-
-          // Golden Yellow Mangoes
-          final mango = Paint()..color = const Color(0xFFFDE047);
-          canvas.drawRect(Rect.fromLTWH(cx - 28, cy - 36, 4, 6), mango);
-          canvas.drawRect(Rect.fromLTWH(cx - 12, cy - 38, 4, 6), mango);
-          canvas.drawRect(Rect.fromLTWH(cx - 2, cy - 40, 4, 6), mango);
-
-          // Wooden Study Desk
-          final desk = Paint()..color = const Color(0xFFB57D42);
-          canvas.drawRect(Rect.fromLTWH(cx - 10, cy - 18, 28, 18), desk);
-
-          // Textbooks & Notepad
-          final book = Paint()..color = const Color(0xFF38BDF8);
-          final notebook = Paint()..color = Colors.white;
-          canvas.drawRect(Rect.fromLTWH(cx - 6, cy - 23, 12, 5), book);
-          canvas.drawRect(Rect.fromLTWH(cx + 8, cy - 21, 8, 3), notebook);
-          break;
-
-        case FacilityType.bukoStand:
-          // Pinoy Sari-Sari / Buko Juice Stand
-          final counter = Paint()..color = const Color(0xFF8C532B);
-          canvas.drawRect(Rect.fromLTWH(cx - 18, cy - 20, 36, 20), counter);
-
-          // Striped Red & White Awning Canopy
-          final awningRed = Paint()..color = const Color(0xFFDC2626);
-          final awningWhite = Paint()..color = const Color(0xFFF4ECE1);
-          canvas.drawRect(Rect.fromLTWH(cx - 22, cy - 46, 22, 10), awningRed);
-          canvas.drawRect(Rect.fromLTWH(cx, cy - 46, 22, 10), awningWhite);
-
-          // Canopy Poles
-          final pole = Paint()
-            ..color = const Color(0xFF1A1C2C)
-            ..strokeWidth = 2;
-          canvas.drawLine(Offset(cx - 20, cy - 20), Offset(cx - 20, cy - 36), pole);
-          canvas.drawLine(Offset(cx + 20, cy - 20), Offset(cx + 20, cy - 36), pole);
-
-          // Fresh Coconuts on Counter
-          final nut = Paint()..color = const Color(0xFF4ADE80);
-          canvas.drawRect(Rect.fromLTWH(cx - 12, cy - 24, 6, 6), nut);
-          canvas.drawRect(Rect.fromLTWH(cx - 4, cy - 24, 6, 6), nut);
-          canvas.drawRect(Rect.fromLTWH(cx + 4, cy - 24, 6, 6), nut);
-          break;
-
-        case FacilityType.sparringRing:
-        case FacilityType.footworkTires:
-          // Agility Footwork Tires laid out on ground
-          final tire = Paint()..color = const Color(0xFF1A1C2C);
-          final dirt = Paint()..color = const Color(0xFF8C532B);
-          canvas.drawRect(Rect.fromLTWH(cx - 20, cy - 10, 12, 8), tire);
-          canvas.drawRect(Rect.fromLTWH(cx - 17, cy - 8, 6, 4), dirt);
-
-          canvas.drawRect(Rect.fromLTWH(cx - 4, cy - 14, 12, 8), tire);
-          canvas.drawRect(Rect.fromLTWH(cx - 1, cy - 12, 6, 4), dirt);
-
-          canvas.drawRect(Rect.fromLTWH(cx + 10, cy - 10, 12, 8), tire);
-          canvas.drawRect(Rect.fromLTWH(cx + 13, cy - 8, 6, 4), dirt);
-          break;
+      double sx;
+      if (s.id == 'std_01' || i == 0) {
+        sx = (bayaniX * w).clamp(24.0, w - 40.0);
+      } else {
+        final wanderOffset = 0.22 + ((i * 0.28) % 0.55) + (sin(animTick * 6.28 + i) * 0.04);
+        sx = (wanderOffset * w).clamp(24.0, w - 40.0);
       }
+      final sy = floorGroundY - 26;
+
+      final color = s.status == StudentStatus.injured
+          ? const Color(0xFFEF4444)
+          : (s.style == ArnisStyle.dobleBaston
+              ? const Color(0xFFF59E0B)
+              : (s.style == ArnisStyle.espadaYDaga
+                  ? const Color(0xFF10B981)
+                  : const Color(0xFF38BDF8)));
+
+      AssetRegistry.drawPlaceholder(
+        canvas,
+        Rect.fromLTWH(sx, sy, 18, 24),
+        label: s.nickname.isNotEmpty ? s.nickname.toUpperCase() : s.name.toUpperCase(),
+        color: color,
+        fontSize: 4.5,
+      );
+
+      // Draw bubble above student
+      _drawStudentBubble(canvas, sx + 9, sy - 6, s);
     }
   }
 
-  void _drawChibiStudent(Canvas canvas, double w, double groundY) {
-    final fx = (bayaniX * w).clamp(24.0, w - 34.0);
-    final fy = groundY - 32;
+  void _drawStudentBubble(Canvas canvas, double cx, double cy, Student s) {
+    String bubbleIcon = '';
+    Color bubbleBg = const Color(0xFFFDE047);
 
-    canvas.save();
-    canvas.translate(fx, fy);
-
-    // Pick sprite based on action
-    List<String> matrix = PixelArtCatalog.chibiBayaniIdle;
-    if (bayaniAction == 1) {
-      matrix = PixelArtCatalog.chibiBayaniPunch;
-    } else if (bayaniAction == 2) {
-      matrix = PixelArtCatalog.chibiBayaniSit;
+    if (s.status == StudentStatus.injured) {
+      bubbleIcon = '+';
+      bubbleBg = const Color(0xFFEF4444);
+    } else if (s.fatigue > 70) {
+      bubbleIcon = '~';
+      bubbleBg = const Color(0xFF38BDF8);
+    } else if (s.currentActivity == ActivityType.aral) {
+      bubbleIcon = 'A';
+      bubbleBg = const Color(0xFFA855F7);
+    } else if (s.morale > 80) {
+      bubbleIcon = '*';
+      bubbleBg = const Color(0xFF22C55E);
+    } else if (s.currentActivity == ActivityType.hinga) {
+      bubbleIcon = 'Z';
+      bubbleBg = const Color(0xFF06B6D4);
     } else {
-      final isStep = (animTick * 8).toInt() % 2 == 1;
-      matrix = isStep ? PixelArtCatalog.chibiBayaniStep : PixelArtCatalog.chibiBayaniIdle;
+      bubbleIcon = '!';
+      bubbleBg = const Color(0xFFF59E0B);
     }
 
-    _drawMatrix(canvas, matrix, 1.8);
-    canvas.restore();
+    final bgPaint = Paint()..color = bubbleBg;
+    canvas.drawCircle(Offset(cx, cy), 4.5, bgPaint);
+
+    final borderPaint = Paint()
+      ..color = const Color(0xFF1A1C2C)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0;
+    canvas.drawCircle(Offset(cx, cy), 4.5, borderPaint);
+
+    final tp = TextPainter(
+      text: TextSpan(
+        text: bubbleIcon,
+        style: const TextStyle(
+          color: Color(0xFF1A1C2C),
+          fontSize: 6,
+          fontWeight: FontWeight.bold,
+          fontFamily: 'Silkscreen',
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    tp.paint(canvas, Offset(cx - tp.width / 2, cy - tp.height / 2));
   }
 
   void _drawChibiCoach(Canvas canvas, double w, double groundY) {
-    final cx = (coachX * w).clamp(24.0, w - 34.0);
-    final cy = groundY - 32;
+    final cx = (coachX * w).clamp(24.0, w - 40.0);
+    final cy = groundY - 28;
 
-    canvas.save();
-    canvas.translate(cx, cy);
-    _drawMatrix(canvas, PixelArtCatalog.coachKanorPortrait, 1.8);
-    canvas.restore();
-  }
-
-  void _drawMatrix(Canvas canvas, List<String> matrix, double pixelSize) {
-    final paint = Paint()..isAntiAlias = false;
-    for (int y = 0; y < matrix.length; y++) {
-      final row = matrix[y];
-      for (int x = 0; x < row.length; x++) {
-        final char = row[x];
-        if (char == '.') continue;
-        paint.color = RetroPalette.colorForChar(char);
-        canvas.drawRect(Rect.fromLTWH(x * pixelSize, y * pixelSize, pixelSize, pixelSize), paint);
-      }
-    }
+    AssetRegistry.drawPlaceholder(
+      canvas,
+      Rect.fromLTWH(cx, cy, 20, 26),
+      label: 'GURO',
+      color: const Color(0xFFF4B41B),
+      fontSize: 5.0,
+    );
   }
 
   void _drawMovingTricycle(Canvas canvas, double w, double roadY) {
     final tx = tricycleX * w;
-    canvas.save();
-    canvas.translate(tx, roadY);
-    _drawMatrix(canvas, PixelArtCatalog.tricycleSprite, 1.4);
-    canvas.restore();
+    AssetRegistry.drawPlaceholder(
+      canvas,
+      Rect.fromLTWH(tx, roadY, 28, 16),
+      label: 'TRIKE',
+      color: const Color(0xFFDC2626),
+      fontSize: 5.0,
+    );
   }
 
   void _drawWalkingPedestrian(Canvas canvas, double w, double sidewalkY) {
     final px = pedestrianX * w;
-    final pPaint = Paint()..color = const Color(0xFF0284C7);
-    final skin = Paint()..color = const Color(0xFFF2B880);
-
-    canvas.drawRect(Rect.fromLTWH(px, sidewalkY + 6, 8, 12), pPaint);
-    canvas.drawRect(Rect.fromLTWH(px + 1, sidewalkY, 6, 6), skin);
+    AssetRegistry.drawPlaceholder(
+      canvas,
+      Rect.fromLTWH(px, sidewalkY - 4, 12, 16),
+      label: 'TAO',
+      color: const Color(0xFF0284C7),
+      fontSize: 4.5,
+    );
   }
 
   @override
-  bool shouldRepaint(covariant _AuthenticBakuranCampPainter oldDelegate) {
+  bool shouldRepaint(covariant _MultiFloorCutawayCampPainter oldDelegate) {
     return true;
   }
 }

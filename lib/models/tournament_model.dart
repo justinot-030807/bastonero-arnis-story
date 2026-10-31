@@ -202,6 +202,10 @@ class TournamentModel {
   final TournamentTrack track;
   final TournamentEventType eventType;
   final int scheduledMonth; // 1 - 12
+  final int scheduledWeek; // 1 - 4
+  final int tier;
+  final int travelCost;
+  final int scholarshipPoints;
   final double minGradeRequired; // 80.0 for school track
   final int minGradeLevel; // 5 = Grade 5, etc.
   final int entryFee;
@@ -218,6 +222,10 @@ class TournamentModel {
     required this.track,
     required this.eventType,
     required this.scheduledMonth,
+    this.scheduledWeek = 2,
+    this.tier = 1,
+    this.travelCost = 0,
+    this.scholarshipPoints = 0,
     this.minGradeRequired = 0.0,
     this.minGradeLevel = 5,
     this.entryFee = 0,
@@ -301,6 +309,10 @@ class TournamentModel {
         'track': track.index,
         'eventType': eventType.index,
         'scheduledMonth': scheduledMonth,
+        'scheduledWeek': scheduledWeek,
+        'tier': tier,
+        'travelCost': travelCost,
+        'scholarshipPoints': scholarshipPoints,
         'minGradeRequired': minGradeRequired,
         'minGradeLevel': minGradeLevel,
         'entryFee': entryFee,
@@ -326,6 +338,10 @@ class TournamentModel {
       track: TournamentTrack.values[json['track'] as int],
       eventType: TournamentEventType.values[json['eventType'] as int],
       scheduledMonth: json['scheduledMonth'] as int,
+      scheduledWeek: json['scheduledWeek'] as int? ?? 2,
+      tier: json['tier'] as int? ?? 1,
+      travelCost: json['travelCost'] as int? ?? 0,
+      scholarshipPoints: json['scholarshipPoints'] as int? ?? 0,
       minGradeRequired: (json['minGradeRequired'] as num?)?.toDouble() ?? 0.0,
       minGradeLevel: json['minGradeLevel'] as int? ?? 5,
       entryFee: json['entryFee'] as int? ?? 0,
