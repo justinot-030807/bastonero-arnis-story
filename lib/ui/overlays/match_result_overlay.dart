@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../game/arnis_match_game.dart';
+import '../retro_ui.dart';
 
 class MatchResultOverlay extends StatelessWidget {
   final ArnisMatchGame game;
@@ -19,45 +20,38 @@ class MatchResultOverlay extends StatelessWidget {
     final prestige = won ? (tournament?.prestigeReward ?? 10) : 2;
 
     return Center(
-      child: Container(
-        width: 360,
-        margin: const EdgeInsets.symmetric(horizontal: 24),
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: const Color(0xFF0F172A),
-          border: Border.all(
-            color: won ? const Color(0xFF22C55E) : const Color(0xFFEF4444),
-            width: 3,
-          ),
-          borderRadius: BorderRadius.circular(8),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.8),
-              blurRadius: 20,
-              spreadRadius: 6,
-            ),
-          ],
-        ),
+      child: RetroBox(
+        width: 380,
+        title: won ? 'TAPOS ANG LABAN: PANALO!' : 'TAPOS ANG LABAN: TALO',
+        backgroundColor: const Color(0xFF0F172A),
+        borderColor: const Color(0xFF1A1C2C),
+        bevelColor: won ? const Color(0xFF4ADE80) : const Color(0xFFDC2626),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // TITLE
-            Text(
-              won ? '🏆 TAPOS ANG LABAN: PANALO! 🏆' : '💀 TAPOS ANG LABAN: TALO 💀',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: won ? const Color(0xFF4ADE80) : const Color(0xFFF87171),
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                fontFamily: 'monospace',
-                letterSpacing: 1.0,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                PixelSpriteWidget(
+                  matrix: won ? PixelArtCatalog.iconLaban : PixelArtCatalog.iconSpar,
+                  pixelSize: 2.2,
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  won ? '[KAMPEON SA LABAN]' : '[HINDI PINALAD SA RING]',
+                  style: TextStyle(
+                    color: won ? const Color(0xFFFDE047) : const Color(0xFFDC2626),
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'monospace',
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
 
-            // MATCH DETAILS
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 color: const Color(0xFF1E293B),
                 border: Border.all(color: const Color(0xFF475569)),
@@ -65,40 +59,24 @@ class MatchResultOverlay extends StatelessWidget {
               child: Column(
                 children: [
                   _buildStatRow('Labanan:', tournament?.title ?? 'Friendly Sparring'),
-                  const Divider(color: Color(0xFF475569)),
-                  _buildStatRow('Lakas ng Palo:', won ? 'Magaling at Asintado!' : 'Kulang sa Salag!'),
-                  const Divider(color: Color(0xFF475569)),
-                  _buildStatRow('Premyong Salapi:', '₱$prizeMoney', valueColor: const Color(0xFFFBBF24)),
-                  const Divider(color: Color(0xFF475569)),
-                  _buildStatRow('Prestige Rank:', '+$prestige ★', valueColor: const Color(0xFF60A5FA)),
+                  const Divider(color: Color(0xFF334155)),
+                  _buildStatRow('Lakas ng Palo:', won ? 'Asintado at Mabilis!' : 'Kulang sa Salag!'),
+                  const Divider(color: Color(0xFF334155)),
+                  _buildStatRow('Premyong Salapi:', 'P$prizeMoney', valueColor: const Color(0xFFFDE047)),
+                  const Divider(color: Color(0xFF334155)),
+                  _buildStatRow('Prestige Rank:', '+$prestige PTS', valueColor: const Color(0xFF38BDF8)),
                 ],
               ),
             ),
-
             const SizedBox(height: 16),
 
-            // CONTINUE BUTTON
-            SizedBox(
-              width: double.infinity,
-              height: 46,
-              child: ElevatedButton(
-                onPressed: onDismiss,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: won ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(4),
-                    side: const BorderSide(color: Colors.white, width: 2),
-                  ),
-                ),
-                child: const Text(
-                  'BUMALIK SA GYM (CONTINUE)',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'monospace',
-                  ),
-                ),
+            RetroButton(
+              height: 42,
+              color: won ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+              onTap: onDismiss,
+              child: const Text(
+                'BUMALIK SA GYM (CONTINUE)',
+                style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
               ),
             ),
           ],
@@ -113,20 +91,11 @@ class MatchResultOverlay extends StatelessWidget {
       children: [
         Text(
           label,
-          style: const TextStyle(
-            color: Color(0xFF94A3B8),
-            fontSize: 12,
-            fontFamily: 'monospace',
-          ),
+          style: const TextStyle(color: Color(0xFF8B9BB4), fontSize: 11, fontFamily: 'monospace'),
         ),
         Text(
           value,
-          style: TextStyle(
-            color: valueColor,
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            fontFamily: 'monospace',
-          ),
+          style: TextStyle(color: valueColor, fontSize: 11, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
         ),
       ],
     );

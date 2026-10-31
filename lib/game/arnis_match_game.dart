@@ -31,6 +31,12 @@ class ArnisMatchGame extends FlameGame {
   // Clinch state
   bool isInClinchMiniGame = false;
 
+  // Live Announcer Log History (Zero Emojis!)
+  final List<String> announcerLogs = [
+    'REFEREE: Handa na ang dalawang arnisador sa court!',
+    'Simula ng Round 1!',
+  ];
+
   ArnisMatchGame({
     required this.playerFighter,
     required this.opponentFighter,
@@ -46,16 +52,13 @@ class ArnisMatchGame extends FlameGame {
   Future<void> onLoad() async {
     await super.onLoad();
 
-    // 1. Arena Background
     arena = ArenaComponent(size: size, arenaType: arenaType);
     add(arena);
 
-    // 2. Positions
     final floorY = size.y * 0.78;
     final pX = size.x * 0.28;
     final oX = size.x * 0.72;
 
-    // 3. Player Fighter
     player = FighterComponent(
       fighter: playerFighter,
       position: Vector2(pX, floorY),
@@ -64,7 +67,6 @@ class ArnisMatchGame extends FlameGame {
       sandoColor: const Color(0xFF1E293B),
     );
 
-    // 4. Opponent Fighter
     opponent = FighterComponent(
       fighter: opponentFighter,
       position: Vector2(oX, floorY),
@@ -73,11 +75,9 @@ class ArnisMatchGame extends FlameGame {
       sandoColor: const Color(0xFF334155),
     );
 
-    // Wire mutual references
     player.opponent = opponent;
     opponent.opponent = player;
 
-    // Wire Callbacks
     player.onHitLanded = (attacker, damage, isCrit) {
       coachGigilMeter = (coachGigilMeter + 10.0).clamp(0.0, 100.0);
     };
@@ -85,48 +85,48 @@ class ArnisMatchGame extends FlameGame {
     player.onClinchTriggered = _handleClinchTriggered;
     opponent.onClinchTriggered = _handleClinchTriggered;
 
+    player.onAnnouncerLog = _addAnnouncerLog;
+    opponent.onAnnouncerLog = _addAnnouncerLog;
+
     add(player);
     add(opponent);
 
-    // Show initial Match HUD overlay safely
     _addOverlaySafely('matchHud');
+  }
+
+  void _addAnnouncerLog(String msg) {
+    announcerLogs.add(msg);
+    if (announcerLogs.length > 5) {
+      announcerLogs.removeAt(0);
+    }
   }
 
   void _addOverlaySafely(String name) {
     try {
       overlays.add(name);
-    } catch (_) {
-      // In headless testing without GameWidget overlay builders, ignore
-    }
+    } catch (_) {}
   }
 
   void _removeOverlaySafely(String name) {
     try {
       overlays.remove(name);
-    } catch (_) {
-      // In headless testing, ignore
-    }
+    } catch (_) {}
   }
 
   void _handleClinchTriggered() {
     if (isInClinchMiniGame || isMatchOver) return;
     isInClinchMiniGame = true;
 
-    // Dramatic slow motion
     timeScale = 0.15;
-
-    // Trigger Timing Mini-game Overlay
     _addOverlaySafely('timingMinigame');
   }
 
-  // Mini-Game Result Callback called from Flutter Overlay
   void resolveClinchMiniGame({required bool isPerfect, required bool isSuccess}) {
     timeScale = 1.0;
     isInClinchMiniGame = false;
     _removeOverlaySafely('timingMinigame');
 
     if (isPerfect) {
-      // Cinematic Signature Move Execution!
       final moveName = playerFighter.style.signatureMove;
       final damage = player.combatPower * 2.2;
 
@@ -134,38 +134,38 @@ class ArnisMatchGame extends FlameGame {
       opponent.disarm();
 
       add(FloatingTextComponent(
-        text: '🔥 $moveName! 🔥',
+        text: '[$moveName! PERFECT]',
         position: Vector2(player.position.x - 30, player.position.y - 100),
-        color: const Color(0xFFFFD700),
-        fontSize: 16,
+        color: const Color(0xFFFDE047),
+        fontSize: 15,
       ));
 
+      _addAnnouncerLog('ASINTADO! Pambihirang $moveName! Disarmed ang kalaban!');
       coachGigilMeter = (coachGigilMeter + 25.0).clamp(0.0, 100.0);
     } else if (isSuccess) {
-      // Good hit
       final damage = player.combatPower * 1.3;
       opponent.receiveDamage(damage, isCrit: false, fromAttacker: player);
 
       add(FloatingTextComponent(
-        text: 'ASINTADO! Solid Counter Strike!',
+        text: '[ASINTADO! SOLID STRIKE]',
         position: Vector2(player.position.x - 20, player.position.y - 90),
         color: const Color(0xFF4ADE80),
-        fontSize: 14,
+        fontSize: 13,
       ));
+      _addAnnouncerLog('Solidong counter attack mula kay ${player.fighter.name}!');
     } else {
-      // Miss: Countered by opponent
       final counterDamage = opponent.combatPower * 1.2;
       player.receiveDamage(counterDamage, isCrit: false, fromAttacker: opponent);
 
       add(FloatingTextComponent(
-        text: 'SABLAY! Countered!',
+        text: '[SABLAY! COUNTERED]',
         position: Vector2(player.position.x - 20, player.position.y - 90),
-        color: const Color(0xFFF87171),
-        fontSize: 14,
+        color: const Color(0xFFDC2626),
+        fontSize: 13,
       ));
+      _addAnnouncerLog('Sablay ang strike! Nag-counter si ${opponent.fighter.name}!');
     }
 
-    // Reset fighters back to idle
     player.animState = FighterAnimState.idle;
     opponent.animState = FighterAnimState.idle;
   }
@@ -199,10 +199,8 @@ class ArnisMatchGame extends FlameGame {
 
     if (isMatchOver) return;
 
-    // Passive gigil charge
     coachGigilMeter = (coachGigilMeter + (4.0 * scaledDt)).clamp(0.0, 100.0);
 
-    // Round countdown
     matchTimer -= scaledDt;
     if (matchTimer <= 0) {
       matchTimer = 0;
@@ -210,7 +208,6 @@ class ArnisMatchGame extends FlameGame {
       return;
     }
 
-    // Check KO
     if (player.currentHp <= 0) {
       _endMatch(playerWon: false);
     } else if (opponent.currentHp <= 0) {
@@ -229,14 +226,14 @@ class ArnisMatchGame extends FlameGame {
     isMatchOver = true;
     isPlayerWinner = playerWon;
 
-    final resultText = playerWon ? 'PANALO! (VICTORY)' : 'TALO (DEFEAT)';
-    final resultColor = playerWon ? const Color(0xFF22C55E) : const Color(0xFFEF4444);
+    final resultText = playerWon ? '[PANALO! VICTORY]' : '[TALO! DEFEAT]';
+    final resultColor = playerWon ? const Color(0xFF22C55E) : const Color(0xFFDC2626);
 
     add(FloatingTextComponent(
       text: resultText,
       position: Vector2(size.x * 0.5 - 70, size.y * 0.35),
       color: resultColor,
-      fontSize: 22,
+      fontSize: 20,
       upwardSpeed: 10,
     ));
 

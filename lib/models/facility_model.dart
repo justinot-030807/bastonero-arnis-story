@@ -238,7 +238,7 @@ class SynergyCombo {
     if (hasAdjacent(FacilityType.bukoStand, FacilityType.footworkTires)) {
       activeCombos.add(const SynergyCombo(
         title: 'Hydration Rush Combo',
-        description: 'Fast cooldowns and happy patrons! +₱100/week passive income & -15% Stamina Drain.',
+        description: 'Fast cooldowns and happy patrons! +P100/week passive income & -15% Stamina Drain.',
         bonusPassivePesos: 100,
         staminaCostReduction: 0.15,
       ));

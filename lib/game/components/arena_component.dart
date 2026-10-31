@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 
@@ -9,6 +10,9 @@ enum ArenaType {
 
 class ArenaComponent extends PositionComponent {
   ArenaType arenaType;
+  double crowdAnimTimer = 0.0;
+  double refereeX = 0.5;
+  double refereeDir = 1.0;
 
   ArenaComponent({
     required Vector2 size,
@@ -16,188 +20,235 @@ class ArenaComponent extends PositionComponent {
   }) : super(size: size, priority: 0);
 
   @override
+  void update(double dt) {
+    super.update(dt);
+    crowdAnimTimer += dt;
+
+    // Referee slowly paces back and forth in the background of the ring
+    refereeX += refereeDir * 0.05 * dt;
+    if (refereeX > 0.58) refereeDir = -1.0;
+    if (refereeX < 0.42) refereeDir = 1.0;
+  }
+
+  @override
   void render(Canvas canvas) {
     super.render(canvas);
 
     switch (arenaType) {
       case ArenaType.purokLupa:
-        _renderPurokLupa(canvas);
+        _render2DPurokLupa(canvas);
         break;
       case ArenaType.coveredCourt:
-        _renderCoveredCourt(canvas);
+        _render2DCoveredCourt(canvas);
         break;
       case ArenaType.nationalArena:
-        _renderNationalArena(canvas);
+        _render2DNationalArena(canvas);
         break;
     }
   }
 
-  void _renderPurokLupa(Canvas canvas) {
+  void _render2DPurokLupa(Canvas canvas) {
     final width = size.x;
     final height = size.y;
-    final horizonY = height * 0.42;
+    final horizonY = height * 0.40;
 
-    // 1. Tropical afternoon sky
+    // 1. Tropical afternoon sky & coconut trees
     final skyPaint = Paint()..color = const Color(0xFF87CEEB);
     canvas.drawRect(Rect.fromLTWH(0, 0, width, horizonY), skyPaint);
 
-    // Warm sun
     final sunPaint = Paint()..color = const Color(0xFFFFE066);
-    canvas.drawCircle(Offset(width * 0.8, horizonY * 0.35), 28, sunPaint);
+    canvas.drawRect(Rect.fromLTWH(width * 0.8, horizonY * 0.2, 32, 32), sunPaint);
 
-    // Distant mango/coconut silhouettes
+    // Distant Mango & Coconut Leaves
     final treePaint = Paint()..color = const Color(0xFF2E6F40);
-    for (double x = -10; x < width + 30; x += 45) {
-      canvas.drawCircle(Offset(x + 15, horizonY - 12), 22, treePaint);
-      canvas.drawCircle(Offset(x + 30, horizonY - 20), 18, treePaint);
+    for (double x = -10; x < width + 30; x += 40) {
+      canvas.drawRect(Rect.fromLTWH(x, horizonY - 30, 36, 26), treePaint);
     }
 
-    // Bamboo fencing
-    final fencePaint = Paint()
-      ..color = const Color(0xFFC29B38)
-      ..strokeWidth = 3;
-    for (double x = 5; x < width; x += 18) {
-      canvas.drawLine(Offset(x, horizonY - 18), Offset(x, horizonY), fencePaint);
-    }
-    canvas.drawLine(Offset(0, horizonY - 10), Offset(width, horizonY - 10), fencePaint);
+    // 2. Spectator Crowd on Wooden Bleachers (Cheering & Waving Banners)
+    _renderSpectatorsAndJudges(canvas, width, horizonY, const Color(0xFF8C532B));
 
-    // 2. Dirt court ground (Lupa)
-    final groundPaint = Paint()..color = const Color(0xFFB57D42);
-    canvas.drawRect(Rect.fromLTWH(0, horizonY, width, height - horizonY), groundPaint);
+    // 3. 2.5D Isometric Ring Floor (Chalked Sand & Soil)
+    final ringPaint = Paint()..color = const Color(0xFFB57D42);
+    final ringPath = Path()
+      ..moveTo(width * 0.08, horizonY + 20)
+      ..lineTo(width * 0.92, horizonY + 20)
+      ..lineTo(width * 0.98, height)
+      ..lineTo(width * 0.02, height)
+      ..close();
+    canvas.drawPath(ringPath, ringPaint);
 
-    // Dirt texture patches / dust
-    final dustPaint = Paint()..color = const Color(0xFF9E652E);
-    for (int i = 0; i < 15; i++) {
-      final dx = (i * 73) % width;
-      final dy = horizonY + 20 + ((i * 37) % (height - horizonY - 30));
-      canvas.drawRect(Rect.fromLTWH(dx, dy, 18, 4), dustPaint);
-    }
-
-    // Sparring ring boundary marked with chalk/lime
+    // Inner White Chalk Sparring Border
     final chalkPaint = Paint()
-      ..color = const Color(0xFFE8E0D5)
+      ..color = const Color(0xFFF4ECE1)
       ..strokeWidth = 3
       ..style = PaintingStyle.stroke;
-    canvas.drawOval(
-      Rect.fromCenter(
-        center: Offset(width * 0.5, horizonY + (height - horizonY) * 0.55),
-        width: width * 0.82,
-        height: (height - horizonY) * 0.65,
-      ),
-      chalkPaint,
-    );
+    final innerPath = Path()
+      ..moveTo(width * 0.18, horizonY + 36)
+      ..lineTo(width * 0.82, horizonY + 36)
+      ..lineTo(width * 0.88, height - 16)
+      ..lineTo(width * 0.12, height - 16)
+      ..close();
+    canvas.drawPath(innerPath, chalkPaint);
 
-    // Court name banner
-    _renderBanner(canvas, 'PUROK BAKBAKAN RING', width * 0.5, 20, const Color(0xFFD97706));
+    // 4. Animated Referee in ring
+    _renderReferee(canvas, width * refereeX, horizonY + 45);
+
+    // Banner Tag
+    _renderRetroBanner(canvas, 'PUROK BAKBAKAN ARENA', width * 0.5, 18, const Color(0xFFE6482E));
   }
 
-  void _renderCoveredCourt(Canvas canvas) {
+  void _render2DCoveredCourt(Canvas canvas) {
     final width = size.x;
     final height = size.y;
-    final horizonY = height * 0.38;
+    final horizonY = height * 0.40;
 
-    // 1. Bleachers & Corrugated Rafters
+    // Bleacher Back Wall
     final wallPaint = Paint()..color = const Color(0xFF334155);
     canvas.drawRect(Rect.fromLTWH(0, 0, width, horizonY), wallPaint);
 
-    // Steel trusses overhead
-    final trussPaint = Paint()
-      ..color = const Color(0xFF64748B)
-      ..strokeWidth = 2;
-    for (double x = 0; x <= width; x += 50) {
-      canvas.drawLine(Offset(x, 0), Offset(x + 25, horizonY * 0.5), trussPaint);
-      canvas.drawLine(Offset(x + 25, horizonY * 0.5), Offset(x + 50, 0), trussPaint);
-    }
+    _renderSpectatorsAndJudges(canvas, width, horizonY, const Color(0xFF1E293B));
 
-    // Bleacher crowd silhouettes
-    final crowdPaint = Paint()..color = const Color(0xFF1E293B);
-    for (double x = 10; x < width; x += 22) {
-      canvas.drawCircle(Offset(x, horizonY - 14), 7, crowdPaint);
-      canvas.drawRect(Rect.fromLTWH(x - 6, horizonY - 8, 12, 10), crowdPaint);
-    }
-
-    // 2. Concrete Painted Court Floor (Classic Barangay Green)
+    // Concrete Barangay Green Court (2.5D Isometric)
     final floorPaint = Paint()..color = const Color(0xFF15803D);
-    canvas.drawRect(Rect.fromLTWH(0, horizonY, width, height - horizonY), floorPaint);
+    final courtPath = Path()
+      ..moveTo(width * 0.08, horizonY + 20)
+      ..lineTo(width * 0.92, horizonY + 20)
+      ..lineTo(width * 0.98, height)
+      ..lineTo(width * 0.02, height)
+      ..close();
+    canvas.drawPath(courtPath, floorPaint);
 
-    // Painted yellow & white court lines
+    // Yellow boundary lines
     final linePaint = Paint()
       ..color = const Color(0xFFFACC15)
       ..strokeWidth = 3
       ..style = PaintingStyle.stroke;
     canvas.drawRect(
-      Rect.fromLTWH(width * 0.1, horizonY + 20, width * 0.8, height - horizonY - 40),
+      Rect.fromLTWH(width * 0.15, horizonY + 35, width * 0.70, height - horizonY - 50),
       linePaint,
     );
 
-    // Center jump circle / Arnis ring
-    canvas.drawCircle(
-      Offset(width * 0.5, horizonY + (height - horizonY) * 0.5),
-      width * 0.22,
-      linePaint,
-    );
+    _renderReferee(canvas, width * refereeX, horizonY + 45);
 
-    _renderBanner(canvas, 'BARANGAY COVERED COURT', width * 0.5, 20, const Color(0xFF16A34A));
+    _renderRetroBanner(canvas, 'BARANGAY COVERED COURT', width * 0.5, 18, const Color(0xFF16A34A));
   }
 
-  void _renderNationalArena(Canvas canvas) {
+  void _render2DNationalArena(Canvas canvas) {
     final width = size.x;
     final height = size.y;
-    final horizonY = height * 0.35;
+    final horizonY = height * 0.38;
 
-    // 1. Dark professional sports hall with spotlights
-    final hallPaint = Paint()..color = const Color(0xFF0F172A);
-    canvas.drawRect(Rect.fromLTWH(0, 0, width, horizonY), hallPaint);
+    final wallPaint = Paint()..color = const Color(0xFF0F172A);
+    canvas.drawRect(Rect.fromLTWH(0, 0, width, horizonY), wallPaint);
 
-    // Spotlights beaming down
-    final spotPaint = Paint()
-      ..color = const Color(0x33F8FAFC)
-      ..style = PaintingStyle.fill;
-    final spotPath1 = Path()
-      ..moveTo(width * 0.2, 0)
-      ..lineTo(0, horizonY)
-      ..lineTo(width * 0.45, horizonY)
-      ..close();
-    canvas.drawPath(spotPath1, spotPaint);
+    _renderSpectatorsAndJudges(canvas, width, horizonY, const Color(0xFF1E293B));
 
-    final spotPath2 = Path()
-      ..moveTo(width * 0.8, 0)
-      ..lineTo(width * 0.55, horizonY)
-      ..lineTo(width, horizonY)
-      ..close();
-    canvas.drawPath(spotPath2, spotPaint);
-
-    // 2. Official WEKAF / Palarong Pambansa Dual Mats (Blue outer, Red inner)
+    // WEKAF National Competition Mats (Blue Outer, Red Inner)
     final blueMat = Paint()..color = const Color(0xFF1D4ED8);
-    canvas.drawRect(Rect.fromLTWH(0, horizonY, width, height - horizonY), blueMat);
+    final matPath = Path()
+      ..moveTo(width * 0.08, horizonY + 20)
+      ..lineTo(width * 0.92, horizonY + 20)
+      ..lineTo(width * 0.98, height)
+      ..lineTo(width * 0.02, height)
+      ..close();
+    canvas.drawPath(matPath, blueMat);
 
     final redMat = Paint()..color = const Color(0xFFB91C1C);
     canvas.drawRect(
-      Rect.fromLTWH(width * 0.12, horizonY + 15, width * 0.76, height - horizonY - 30),
+      Rect.fromLTWH(width * 0.16, horizonY + 35, width * 0.68, height - horizonY - 50),
       redMat,
     );
 
-    // Inner White Square boundary
-    final whiteLine = Paint()
-      ..color = Colors.white
-      ..strokeWidth = 3
-      ..style = PaintingStyle.stroke;
-    canvas.drawRect(
-      Rect.fromLTWH(width * 0.2, horizonY + 30, width * 0.6, height - horizonY - 60),
-      whiteLine,
-    );
+    _renderReferee(canvas, width * refereeX, horizonY + 45);
 
-    _renderBanner(canvas, 'PALARONG PAMBANSA ARENA', width * 0.5, 20, const Color(0xFFDC2626));
+    _renderRetroBanner(canvas, 'PALARONG PAMBANSA NATIONAL COLISEUM', width * 0.5, 18, const Color(0xFFDC2626));
   }
 
-  void _renderBanner(Canvas canvas, String title, double cx, double cy, Color tagColor) {
+  void _renderSpectatorsAndJudges(Canvas canvas, double width, double horizonY, Color benchColor) {
+    // Bleachers
+    final bench = Paint()..color = benchColor;
+    canvas.drawRect(Rect.fromLTWH(0, horizonY - 32, width, 52), bench);
+
+    // Cheering Crowd of Pixel Spectators
+    final crowdColors = [
+      const Color(0xFFDC2626),
+      const Color(0xFFF4B41B),
+      const Color(0xFF38BDF8),
+      const Color(0xFF4ADE80),
+      const Color(0xFFE2E8F0),
+    ];
+
+    for (int row = 0; row < 2; row++) {
+      final by = horizonY - 26 + (row * 16);
+      for (double x = 8; x < width - 10; x += 18) {
+        final bounce = sin((crowdAnimTimer * 6) + (x * 0.1) + row) * 2.5;
+        final color = crowdColors[(x.toInt() + row) % crowdColors.length];
+
+        final headPaint = Paint()..color = color;
+        canvas.drawRect(Rect.fromLTWH(x, by + bounce, 7, 7), headPaint);
+        // Head outline
+        final outline = Paint()
+          ..color = const Color(0xFF1A1C2C)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.2;
+        canvas.drawRect(Rect.fromLTWH(x, by + bounce, 7, 7), outline);
+
+        // Occasional raised banner / pennant
+        if ((x.toInt() % 54) == 0) {
+          final bannerPaint = Paint()..color = const Color(0xFFFDE047);
+          canvas.drawRect(Rect.fromLTWH(x - 2, by + bounce - 9, 12, 6), bannerPaint);
+        }
+      }
+    }
+
+    // 3 Judges Sitting at Ringside Table (Right Corner)
+    final tableX = width * 0.74;
+    final tableY = horizonY + 12;
+
+    // Judges Table
+    final tablePaint = Paint()..color = const Color(0xFF564064);
+    canvas.drawRect(Rect.fromLTWH(tableX, tableY, 68, 12), tablePaint);
+
+    // 3 Judges
+    for (int j = 0; j < 3; j++) {
+      final jx = tableX + 8 + (j * 20);
+      final judgeBody = Paint()..color = const Color(0xFF1E293B);
+      final judgeHead = Paint()..color = const Color(0xFFF2B880);
+      canvas.drawRect(Rect.fromLTWH(jx, tableY - 14, 10, 10), judgeHead);
+      canvas.drawRect(Rect.fromLTWH(jx, tableY - 4, 10, 6), judgeBody);
+      // Scoreboard paper
+      final paper = Paint()..color = Colors.white;
+      canvas.drawRect(Rect.fromLTWH(jx + 2, tableY + 2, 6, 5), paper);
+    }
+  }
+
+  void _renderReferee(Canvas canvas, double rx, double ry) {
+    // Official black/white referee shirt
+    final refShirt = Paint()..color = const Color(0xFFF4ECE1);
+    final refPants = Paint()..color = const Color(0xFF1A1C2C);
+    final skin = Paint()..color = const Color(0xFFF2B880);
+
+    // Pants
+    canvas.drawRect(Rect.fromLTWH(rx, ry + 12, 10, 14), refPants);
+    // Torso with black vertical referee stripes
+    canvas.drawRect(Rect.fromLTWH(rx - 1, ry + 4, 12, 10), refShirt);
+    final stripe = Paint()..color = const Color(0xFF1A1C2C);
+    canvas.drawRect(Rect.fromLTWH(rx + 2, ry + 4, 2, 10), stripe);
+    canvas.drawRect(Rect.fromLTWH(rx + 6, ry + 4, 2, 10), stripe);
+
+    // Head
+    canvas.drawRect(Rect.fromLTWH(rx + 1, ry - 4, 8, 8), skin);
+  }
+
+  void _renderRetroBanner(Canvas canvas, String title, double cx, double cy, Color tagColor) {
     final bannerPaint = Paint()..color = tagColor;
     final borderPaint = Paint()
-      ..color = Colors.black
-      ..strokeWidth = 2
+      ..color = const Color(0xFF1A1C2C)
+      ..strokeWidth = 2.5
       ..style = PaintingStyle.stroke;
 
-    final bannerRect = Rect.fromCenter(center: Offset(cx, cy), width: 220, height: 26);
+    final bannerRect = Rect.fromCenter(center: Offset(cx, cy), width: 280, height: 24);
     canvas.drawRect(bannerRect, bannerPaint);
     canvas.drawRect(bannerRect, borderPaint);
 
@@ -206,10 +257,10 @@ class ArenaComponent extends PositionComponent {
         text: title,
         style: const TextStyle(
           color: Colors.white,
-          fontSize: 11,
+          fontSize: 10,
           fontWeight: FontWeight.bold,
           fontFamily: 'monospace',
-          letterSpacing: 1.0,
+          letterSpacing: 1.2,
         ),
       ),
       textDirection: TextDirection.ltr,

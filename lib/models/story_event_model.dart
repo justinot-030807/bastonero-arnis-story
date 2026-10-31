@@ -71,7 +71,7 @@ class StoryEvent {
         triggerCondition: 'start',
         dialogues: [
           'Kamusta, bata! Hawakan mo ang rattan baston na ito nang maayos.',
-          'Hindi basta palo ang Arnis. May ritmo, may respeto, at higit sa lahat — diskarte!',
+          'Hindi basta palo ang Arnis. May ritmo, may respeto, at higit sa lahat - diskarte!',
           'Ngayong Grade 5 ka na, tuturuan kita rito sa ating backyard gym.',
           'Bantayan mo ang iyong grado sa eskwela! Kapag bumagsak ka sa 80, bawal ka sa Palaro.',
           'Magsimula tayo sa Gulong Dummy. Sanayin mo ang iyong pulso at salag!',

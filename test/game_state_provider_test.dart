@@ -1,8 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:bastonero_arnis_story/providers/game_state_provider.dart';
 import 'package:bastonero_arnis_story/models/facility_model.dart';
-import 'package:bastonero_arnis_story/models/fighter_model.dart';
-import 'package:bastonero_arnis_story/models/tournament_model.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -57,11 +55,17 @@ void main() {
       expect(state.fighter.academics, greaterThan(76.0));
     });
 
-    test('Gym Facilities: Building, Upgrades, Expansion to 8 slots, and Synergies', () {
+    test('Gym Facilities: Building, Upgrades, Cutaway Expansion, and Synergies', () {
       state.pesos = 5000; // grant testing funds
 
-      // Build Buko Stand in slot 2 (adjacent to starter Gulong in slot 0 or desk in slot 1)
-      // Starter slots: [0: Gulong, 1: Study Desk]
+      // Starter slots: 2
+      expect(state.maxSlots, 2);
+
+      // Expand to 4 slots
+      final expanded1 = state.expandGymSlots();
+      expect(expanded1, isTrue);
+      expect(state.maxSlots, 4);
+
       // Build Footwork in slot 2, Buko Stand in slot 3
       state.buildFacility(2, FacilityType.footworkTires);
       state.buildFacility(3, FacilityType.bukoStand);
@@ -73,11 +77,10 @@ void main() {
       final synergies = state.activeSynergies;
       expect(synergies, isNotEmpty);
 
-      // Expand gym slots from 4 to 8
-      expect(state.maxSlots, 4);
-      final expanded = state.expandGymSlots();
-      expect(expanded, isTrue);
-      expect(state.maxSlots, 8);
+      // Expand gym slots to 6 (Upper floor expansion)
+      final expanded2 = state.expandGymSlots();
+      expect(expanded2, isTrue);
+      expect(state.maxSlots, 6);
     });
 
     test('Tournaments: School Track requires Grade >= 80, Street Track open to all', () {

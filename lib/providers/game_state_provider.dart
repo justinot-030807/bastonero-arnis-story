@@ -4,6 +4,7 @@ import '../models/fighter_model.dart';
 import '../models/facility_model.dart';
 import '../models/tournament_model.dart';
 import '../models/story_event_model.dart';
+import '../models/inventory_model.dart';
 import '../utils/storage_service.dart';
 
 enum ActionType {
@@ -17,31 +18,42 @@ enum ActionType {
 }
 
 class GameStateProvider extends ChangeNotifier {
+  // Save Slot & Flow
+  int activeSlotIndex = 1;
+  bool isInTitleScreen = true;
+
   // Calendar Progression
   int year = 1; // Year 1 = Grade 5 (Elementary, Age 11)
   int month = 6; // June (Month 6) starts the school year in PH
   int week = 1; // 1 to 4 weeks per month
 
   // Currencies & Reputation
-  int pesos = 600;
+  int pesos = 650;
   int prestige = 0;
 
-  // Gym Facilities (Starts with 4 slots, expandable to 8)
-  int maxSlots = 4;
+  // Gym Facilities (Starts with 2 cutaway slots, expandable to 4 and 6)
+  int maxSlots = 2;
   late List<FacilityModel?> slots;
 
   // Fighter
   late FighterModel fighter;
+
+  // Inventory & Nutritional Buffs
+  List<InventoryItem> inventory = [];
+  List<ActiveBuff> activeBuffs = [];
+
+  // Audio / Settings
+  double bgmVolume = 0.8;
+  double sfxVolume = 1.0;
 
   // Tournaments & Story Events
   List<TournamentModel> tournaments = [];
   List<StoryEvent> storyEvents = [];
   StoryEvent? activeDialogueEvent;
 
-  // Recent Action Log for Kairosoft-style ticker notifications
+  // Recent Action Log for Kairosoft-style ticker notifications (Zero Emojis!)
   String recentLog = 'Maligayang pagdating sa Bastonero: Arnis Story!';
 
-  // Month names in English & Filipino context
   static const List<String> monthNames = [
     'January (Bagong Taon)',
     'February (Regional Meet)',
@@ -69,7 +81,7 @@ class GameStateProvider extends ChangeNotifier {
     week = 1;
     pesos = 650;
     prestige = 0;
-    maxSlots = 4;
+    maxSlots = 2; // Cutaway begins with 2 slots, expands to 4 then 6
 
     slots = List<FacilityModel?>.filled(8, null);
     // Starter facility in slot 0: Gulong Target
@@ -99,7 +111,7 @@ class GameStateProvider extends ChangeNotifier {
       speed: 14.0,
       technique: 13.0,
       defense: 11.0,
-      academics: 86.0, // starts varsity eligible
+      academics: 86.0,
       style: FighterStyle.soloBaston,
       equippedWeapon: WeaponItem.yantok,
       equippedGears: [GearItem.rubberShoes],
@@ -108,9 +120,29 @@ class GameStateProvider extends ChangeNotifier {
 
     tournaments = TournamentModel.generateDefaultTournaments();
     storyEvents = StoryEvent.generateDefaultStoryEvents();
+    inventory = InventoryItem.createDefaultCatalog();
+    activeBuffs = [];
 
-    // Trigger initial coach intro dialog
     checkStoryTriggers('start');
+  }
+
+  void enterGame() {
+    isInTitleScreen = false;
+    notifyListeners();
+  }
+
+  void returnToTitle() {
+    isInTitleScreen = true;
+    notifyListeners();
+  }
+
+  void startNewGame({int slot = 1}) {
+    activeSlotIndex = slot;
+    StorageService.setActiveSlotIndex(slot);
+    _initializeDefaultState();
+    isInTitleScreen = false;
+    notifyListeners();
+    saveGame();
   }
 
   // Active Synergies evaluated from slot placements
@@ -119,7 +151,7 @@ class GameStateProvider extends ChangeNotifier {
     return SynergyCombo.evaluateSynergies(activeSlots);
   }
 
-  // Multiplier Aggregation
+  // Multiplier Aggregation including Nutritional Buffs
   double get totalPowerMultiplier {
     double mult = 1.0;
     for (int i = 0; i < maxSlots; i++) {
@@ -128,6 +160,9 @@ class GameStateProvider extends ChangeNotifier {
     }
     for (final s in activeSynergies) {
       mult += s.powerXpBonus;
+    }
+    for (final b in activeBuffs) {
+      mult += b.powerMultiplier;
     }
     return mult;
   }
@@ -141,6 +176,9 @@ class GameStateProvider extends ChangeNotifier {
     for (final s in activeSynergies) {
       mult += s.speedXpBonus;
     }
+    for (final b in activeBuffs) {
+      mult += b.speedMultiplier;
+    }
     return mult;
   }
 
@@ -152,6 +190,9 @@ class GameStateProvider extends ChangeNotifier {
     }
     for (final s in activeSynergies) {
       mult += s.techniqueXpBonus;
+    }
+    for (final b in activeBuffs) {
+      mult += b.techniqueMultiplier;
     }
     return mult;
   }
@@ -165,6 +206,9 @@ class GameStateProvider extends ChangeNotifier {
     for (final s in activeSynergies) {
       mult += s.defenseXpBonus;
     }
+    for (final b in activeBuffs) {
+      mult += b.defenseMultiplier;
+    }
     return mult;
   }
 
@@ -176,6 +220,9 @@ class GameStateProvider extends ChangeNotifier {
     }
     for (final s in activeSynergies) {
       mult += s.academicBonus;
+    }
+    for (final b in activeBuffs) {
+      mult += b.academicBonus;
     }
     return mult;
   }
@@ -201,7 +248,7 @@ class GameStateProvider extends ChangeNotifier {
   }
 
   double get totalPassiveWeeklyStaminaRecovery {
-    double rec = 10.0; // base natural weekly recovery
+    double rec = 10.0;
     for (int i = 0; i < maxSlots; i++) {
       final f = slots[i];
       if (f != null) rec += f.weeklyStaminaRecoveryBonus;
@@ -216,7 +263,6 @@ class GameStateProvider extends ChangeNotifier {
       week = 1;
       month += 1;
 
-      // Handle Year Progression (Month 13 wraps to Month 1)
       if (month > 12) {
         month = 1;
         year += 1;
@@ -224,25 +270,30 @@ class GameStateProvider extends ChangeNotifier {
       }
     }
 
-    // Passive Income from Buko Stands & Synergies
+    // Passive Income & Recovery
     final weeklyIncome = totalPassiveWeeklyPesos;
     if (weeklyIncome > 0) {
       pesos += weeklyIncome;
     }
 
-    // Passive Stamina Recovery
     fighter.stamina = (fighter.stamina + totalPassiveWeeklyStaminaRecovery)
         .clamp(0.0, fighter.maxStamina);
 
-    // Natural Academic Decay if no studying occurred
     fighter.academics = (fighter.academics - 0.4).clamp(65.0, 100.0);
 
-    // Check if grade drops below varsity requirement
+    // Update Nutritional Buffs (countdown 1 week)
+    for (final buff in activeBuffs) {
+      buff.remainingWeeks -= 1;
+    }
+    activeBuffs.removeWhere((b) => b.remainingWeeks <= 0);
+
+    // Facility harvests
+    _handleFacilityHarvests();
+
     if (fighter.academics < 80.0) {
       checkStoryTriggers('grade_warning');
     }
 
-    // Check month-based story events
     checkStoryTriggers('month_$month');
 
     if (actionSummary.isNotEmpty) {
@@ -253,15 +304,87 @@ class GameStateProvider extends ChangeNotifier {
     saveGame();
   }
 
+  void _handleFacilityHarvests() {
+    for (int i = 0; i < maxSlots; i++) {
+      final f = slots[i];
+      if (f == null) continue;
+      // Buko Stand harvests Buko Juice every 2 weeks
+      if (f.type == FacilityType.bukoStand && week % 2 == 0) {
+        final item = inventory.firstWhere((it) => it.id == 'buko_juice', orElse: () => inventory.first);
+        item.quantity += 1;
+        recentLog = '[ANI] Naka-ani ng 1 Sariwang Buko Juice mula sa Stand!';
+      }
+      // Mango tree desk harvests ripe mangoes in summer months (April/May)
+      if (f.type == FacilityType.studyDesk && (month == 4 || month == 5) && week == 1) {
+        final item = inventory.firstWhere((it) => it.id == 'mangga', orElse: () => inventory.first);
+        item.quantity += 1;
+        recentLog = '[ANI] Nahulog ang hinog na Mangga mula sa puno!';
+      }
+    }
+  }
+
   void _handleYearEndEvaluation() {
     fighter.age += 1;
     if (fighter.isPassingSchool) {
       fighter.gradeLevel += 1;
-      recentLog = 'Promoted to ${fighter.gradeLevelDescription}! Grado: ${fighter.academics.toStringAsFixed(1)}';
-      pesos += 500; // DepEd student allowance bonus
+      recentLog = '[PASA] Umabante sa ${fighter.gradeLevelDescription}! Grado: ${fighter.academics.toStringAsFixed(1)}';
+      pesos += 500;
     } else {
-      recentLog = 'Retained! Failed the school year with Grado: ${fighter.academics.toStringAsFixed(1)}';
+      recentLog = '[REMEDIAL] Bagsak ang school year! Grado: ${fighter.academics.toStringAsFixed(1)}';
     }
+  }
+
+  // INVENTORY & NUTRITION CONSUMPTION
+  bool consumeFoodItem(InventoryItem item) {
+    if (item.quantity <= 0) return false;
+    item.quantity -= 1;
+
+    if (item.staminaRestore > 0) {
+      fighter.stamina = (fighter.stamina + item.staminaRestore).clamp(0.0, fighter.maxStamina);
+    }
+    if (item.hpRestore > 0) {
+      fighter.hp = (fighter.hp + item.hpRestore).clamp(0.0, fighter.maxHp);
+    }
+    if (item.academicGain > 0) {
+      fighter.academics = (fighter.academics + item.academicGain).clamp(65.0, 100.0);
+    }
+
+    if (item.grantedBuff != null) {
+      // Replace existing or add new
+      activeBuffs.removeWhere((b) => b.id == item.grantedBuff!.id);
+      activeBuffs.add(ActiveBuff(
+        id: item.grantedBuff!.id,
+        name: item.grantedBuff!.name,
+        itemRef: item.grantedBuff!.itemRef,
+        remainingWeeks: item.grantedBuff!.remainingWeeks,
+        powerMultiplier: item.grantedBuff!.powerMultiplier,
+        speedMultiplier: item.grantedBuff!.speedMultiplier,
+        techniqueMultiplier: item.grantedBuff!.techniqueMultiplier,
+        defenseMultiplier: item.grantedBuff!.defenseMultiplier,
+        academicBonus: item.grantedBuff!.academicBonus,
+      ));
+    }
+
+    recentLog = '[NUTRISYON] Kinain ang ${item.name}! Buff aktibo.';
+    notifyListeners();
+    saveGame();
+    return true;
+  }
+
+  bool buyFoodItem(InventoryItem item, int amount) {
+    final totalCost = item.price * amount;
+    if (pesos < totalCost) {
+      recentLog = '[TIANGGE] Kulang ang pera pambili ng ${item.name}!';
+      notifyListeners();
+      return false;
+    }
+
+    pesos -= totalCost;
+    item.quantity += amount;
+    recentLog = '[TIANGGE] Binili ang $amount x ${item.name} (P$totalCost).';
+    notifyListeners();
+    saveGame();
+    return true;
   }
 
   // TRAINING ACTIONS
@@ -270,7 +393,7 @@ class GameStateProvider extends ChangeNotifier {
     final reducedCost = baseStaminaCost * (1.0 - totalStaminaCostReduction);
 
     if (fighter.stamina < reducedCost) {
-      recentLog = 'Sobra ang pagod! Mag-pahinga (Rest) muna upang manumbalik ang lakas.';
+      recentLog = '[PAGOD] Magpahinga muna! Kulang sa hangin.';
       notifyListeners();
       return false;
     }
@@ -285,7 +408,7 @@ class GameStateProvider extends ChangeNotifier {
         fighter.maxHp += 2.0;
         fighter.hp = fighter.maxHp;
         advanceOneWeek(
-          actionSummary: 'Nagpalakas sa Gulong Dummy! +${gain.toStringAsFixed(1)} Power (Lakas)!',
+          actionSummary: '[LAKAS] Hataw sa Gulong Dummy! +${gain.toStringAsFixed(1)} Lakas!',
         );
         break;
 
@@ -293,21 +416,20 @@ class GameStateProvider extends ChangeNotifier {
         final gain = (1.5 + rnd.nextDouble() * 1.5) * totalSpeedMultiplier;
         fighter.speed += gain;
         advanceOneWeek(
-          actionSummary: 'Tumalon sa Footwork Tires! +${gain.toStringAsFixed(1)} Speed (Bilis)!',
+          actionSummary: '[BILIS] Tumalon sa Footwork Tires! +${gain.toStringAsFixed(1)} Bilis!',
         );
         break;
 
       case ActionType.trainTechnique:
         final gain = (1.4 + rnd.nextDouble() * 1.4) * totalTechniqueMultiplier;
         fighter.technique += gain;
-        // Also boost mastery of active style
         final currentMastery = fighter.styleMasteries[fighter.style] ?? 1;
         if (currentMastery < 10 && rnd.nextDouble() > 0.6) {
           fighter.styleMasteries[fighter.style] = currentMastery + 1;
-          recentLog = 'Tumalon ang Mastery ng ${fighter.style.displayName} sa Lvl ${currentMastery + 1}!';
+          recentLog = '[MASTERY] ${fighter.style.displayName} tumaas sa Lvl ${currentMastery + 1}!';
         }
         advanceOneWeek(
-          actionSummary: 'Bumantay ng Anyo at Sinawali! +${gain.toStringAsFixed(1)} Technique!',
+          actionSummary: '[DISKARTE] Sinawali at Anyo! +${gain.toStringAsFixed(1)} Diskarte!',
         );
         break;
 
@@ -317,7 +439,7 @@ class GameStateProvider extends ChangeNotifier {
         fighter.maxHp += 1.5;
         fighter.hp = fighter.maxHp;
         advanceOneWeek(
-          actionSummary: 'Nagsanay ng Salag at Blocking! +${gain.toStringAsFixed(1)} Defense!',
+          actionSummary: '[SALAG] Pagsasanay ng Salag! +${gain.toStringAsFixed(1)} Depensa!',
         );
         break;
 
@@ -326,16 +448,16 @@ class GameStateProvider extends ChangeNotifier {
         final gradeBoost = (2.5 + rnd.nextDouble() * 2.5) * totalAcademicsMultiplier;
         fighter.academics = (fighter.academics + gradeBoost).clamp(65.0, 100.0);
         advanceOneWeek(
-          actionSummary: 'Nag-aral sa ilalim ng Mangga! +${gradeBoost.toStringAsFixed(1)} Grado (${fighter.academics.toStringAsFixed(1)})!',
+          actionSummary: '[ARAL] Nagbasa sa ilalim ng Mangga! +${gradeBoost.toStringAsFixed(1)} Grado (${fighter.academics.toStringAsFixed(1)})!',
         );
         break;
 
       case ActionType.rest:
         fighter.stamina = fighter.maxStamina;
         fighter.hp = fighter.maxHp;
-        pesos += 50; // sideline chores
+        pesos += 50;
         advanceOneWeek(
-          actionSummary: 'Uminom ng buko at nagpahinga! 100% Stamina & HP naibalik!',
+          actionSummary: '[HINGA] Uminom ng Buko at nagpahinga! 100% Hangin & Tibay naibalik!',
         );
         break;
 
@@ -346,7 +468,7 @@ class GameStateProvider extends ChangeNotifier {
         fighter.technique += gain * totalTechniqueMultiplier;
         fighter.defense += gain * totalDefenseMultiplier;
         advanceOneWeek(
-          actionSummary: 'Nag-sparring sa Ring! Lahat ng stats tumaas ng +${gain.toStringAsFixed(1)}!',
+          actionSummary: '[SPARRING] Bakbakan sa Ring! Lahat ng stats tumaas ng +${gain.toStringAsFixed(1)}!',
         );
         break;
     }
@@ -358,7 +480,7 @@ class GameStateProvider extends ChangeNotifier {
   bool buildFacility(int slotIndex, FacilityType type) {
     if (slotIndex < 0 || slotIndex >= maxSlots) return false;
     if (pesos < type.baseCost) {
-      recentLog = 'Kulang ang Pesos! Kailangan ng ₱${type.baseCost}.';
+      recentLog = '[PERA] Kulang ang Pesos! Kailangan ng P${type.baseCost}.';
       notifyListeners();
       return false;
     }
@@ -371,7 +493,7 @@ class GameStateProvider extends ChangeNotifier {
       slotIndex: slotIndex,
     );
 
-    recentLog = 'Itinayo ang ${type.displayName} sa Slot ${slotIndex + 1}!';
+    recentLog = '[TAYO] Itinayo ang ${type.displayName} sa Slot ${slotIndex + 1}!';
     notifyListeners();
     saveGame();
     return true;
@@ -383,14 +505,14 @@ class GameStateProvider extends ChangeNotifier {
     if (facility == null) return false;
 
     if (pesos < facility.upgradeCost) {
-      recentLog = 'Kulang ang Pesos para i-upgrade ang ${facility.type.displayName}!';
+      recentLog = '[PERA] Kulang ang Pesos pambili ng upgrade!';
       notifyListeners();
       return false;
     }
 
     pesos -= facility.upgradeCost;
     facility.level += 1;
-    recentLog = 'Na-upgrade ang ${facility.type.displayName} sa Level ${facility.level}!';
+    recentLog = '[UPGRADE] ${facility.type.displayName} umabante sa Lvl ${facility.level}!';
     notifyListeners();
     saveGame();
     return true;
@@ -404,24 +526,24 @@ class GameStateProvider extends ChangeNotifier {
     final refund = (facility.type.baseCost * 0.4).round();
     pesos += refund;
     slots[slotIndex] = null;
-    recentLog = 'Binuwag ang ${facility.type.displayName}. Nabawi ang ₱$refund.';
+    recentLog = '[BUWAG] Binuwag ang ${facility.type.displayName}. Nabawi ang P$refund.';
     notifyListeners();
     saveGame();
     return true;
   }
 
   bool expandGymSlots() {
-    if (maxSlots >= 8) return false;
+    if (maxSlots >= 6) return false;
     const cost = 1800;
     if (pesos < cost) {
-      recentLog = 'Kulang ang Pesos para lumawak ang bakuran! Kailangan ng ₱$cost.';
+      recentLog = '[PERA] Kailangan ng P$cost para lumawak ang bakuran at itayo ang 2nd floor!';
       notifyListeners();
       return false;
     }
 
     pesos -= cost;
-    maxSlots = 8;
-    recentLog = 'Lumawak ang gym bakuran! Mayroon ka nang 8 slots!';
+    maxSlots = (maxSlots + 2).clamp(2, 6);
+    recentLog = '[PAGLAKI] Lumawak ang training camp! Mayroon ka nang $maxSlots physical slots!';
     notifyListeners();
     saveGame();
     return true;
@@ -430,13 +552,13 @@ class GameStateProvider extends ChangeNotifier {
   // EQUIPMENT MANAGEMENT
   bool buyWeapon(WeaponItem weapon) {
     if (pesos < weapon.price) {
-      recentLog = 'Kulang ang Pesos para sa ${weapon.name}!';
+      recentLog = '[PERA] Kulang ang Pesos para sa ${weapon.name}!';
       notifyListeners();
       return false;
     }
     pesos -= weapon.price;
     fighter.equippedWeapon = weapon;
-    recentLog = 'Binili at isinuot ang ${weapon.name}!';
+    recentLog = '[SANDATA] Isinuot ang ${weapon.name}!';
     notifyListeners();
     saveGame();
     return true;
@@ -444,15 +566,14 @@ class GameStateProvider extends ChangeNotifier {
 
   bool buyGear(GearItem gear) {
     if (pesos < gear.price) {
-      recentLog = 'Kulang ang Pesos para sa ${gear.name}!';
+      recentLog = '[PERA] Kulang ang Pesos para sa ${gear.name}!';
       notifyListeners();
       return false;
     }
     pesos -= gear.price;
-    // Replace gear with same id or add
     fighter.equippedGears.removeWhere((g) => g.id == gear.id);
     fighter.equippedGears.add(gear);
-    recentLog = 'Binili at isinuot ang ${gear.name}!';
+    recentLog = '[GEAR] Isinuot ang ${gear.name}!';
     notifyListeners();
     saveGame();
     return true;
@@ -460,7 +581,7 @@ class GameStateProvider extends ChangeNotifier {
 
   void switchStyle(FighterStyle newStyle) {
     fighter.style = newStyle;
-    recentLog = 'Pinalitan ang istilo: ${newStyle.displayName}!';
+    recentLog = '[ISTILO] Pinalitan ang istilo: ${newStyle.displayName}!';
     notifyListeners();
     saveGame();
   }
@@ -472,20 +593,19 @@ class GameStateProvider extends ChangeNotifier {
       prestige += tournament.prestigeReward;
       tournament.isCompleted = true;
 
-      // Small permanent stat growth from winning laban
       fighter.power += 1.0;
       fighter.speed += 1.0;
       fighter.technique += 1.5;
       fighter.defense += 1.0;
 
-      recentLog = 'Kampeon sa ${tournament.title}! Nanalo ng ₱${tournament.prizeMoney} & +${tournament.prestigeReward} Prestige!';
+      recentLog = '[KAMPEON] Panalo sa ${tournament.title}! Nanalo ng P${tournament.prizeMoney} & +${tournament.prestigeReward} Prestige!';
 
       if (tournament.id == 'division_meet') {
         checkStoryTriggers('division_won');
       }
     } else {
       pesos += (tournament.prizeMoney * 0.15).round();
-      recentLog = 'Natalo sa ${tournament.title}. Huwag sumuko, magsanay muli!';
+      recentLog = '[TALO] Natalo sa ${tournament.title}. Magsanay muli!';
     }
 
     advanceOneWeek();
@@ -530,12 +650,18 @@ class GameStateProvider extends ChangeNotifier {
       'slots': slots.map((s) => s?.toJson()).toList(),
       'tournaments': tournaments.map((t) => t.toJson()).toList(),
       'storyEvents': storyEvents.map((e) => e.toJson()).toList(),
+      'inventory': inventory.map((it) => it.toJson()).toList(),
+      'activeBuffs': activeBuffs.map((b) => b.toJson()).toList(),
+      'bgmVolume': bgmVolume,
+      'sfxVolume': sfxVolume,
     };
-    await StorageService.saveGame(data);
+    await StorageService.saveGameToSlot(activeSlotIndex, data);
   }
 
-  Future<bool> loadSavedGame() async {
-    final data = await StorageService.loadGame();
+  Future<bool> loadSavedGame({int slot = 1}) async {
+    activeSlotIndex = slot;
+    StorageService.setActiveSlotIndex(slot);
+    final data = await StorageService.loadGameFromSlot(slot);
     if (data == null) return false;
 
     try {
@@ -544,7 +670,7 @@ class GameStateProvider extends ChangeNotifier {
       week = data['week'] as int? ?? 1;
       pesos = data['pesos'] as int? ?? 650;
       prestige = data['prestige'] as int? ?? 0;
-      maxSlots = data['maxSlots'] as int? ?? 4;
+      maxSlots = (data['maxSlots'] as int? ?? 2).clamp(2, 6);
 
       if (data['fighter'] != null) {
         fighter = FighterModel.fromJson(data['fighter'] as Map<String, dynamic>);
@@ -575,7 +701,28 @@ class GameStateProvider extends ChangeNotifier {
             .toList();
       }
 
-      recentLog = 'Game loaded successfully!';
+      final rawInventory = data['inventory'] as List<dynamic>?;
+      if (rawInventory != null) {
+        inventory = rawInventory
+            .map((e) => InventoryItem.fromJson(e as Map<String, dynamic>))
+            .toList();
+      } else {
+        inventory = InventoryItem.createDefaultCatalog();
+      }
+
+      final rawBuffs = data['activeBuffs'] as List<dynamic>?;
+      if (rawBuffs != null) {
+        activeBuffs = rawBuffs
+            .map((e) => ActiveBuff.fromJson(e as Map<String, dynamic>))
+            .toList();
+      } else {
+        activeBuffs = [];
+      }
+
+      bgmVolume = (data['bgmVolume'] as num?)?.toDouble() ?? 0.8;
+      sfxVolume = (data['sfxVolume'] as num?)?.toDouble() ?? 1.0;
+
+      recentLog = '[LOAD] Na-load ang Slot $slot!';
       notifyListeners();
       return true;
     } catch (e) {

@@ -8,6 +8,8 @@ enum FighterAnimState {
   idle,
   stepping,
   striking,
+  signatureAbaniko,
+  signatureHeavenSix,
   blocking,
   hitStun,
   clinch,
@@ -41,24 +43,28 @@ class FighterComponent extends PositionComponent {
   bool isDisarmed = false;
   double disarmTimer = 0.0;
 
+  // Dodge afterimage ghost position
+  Vector2? dodgeGhostPos;
+  double dodgeGhostOpacity = 0.0;
+
   // Reference to opponent
   FighterComponent? opponent;
 
-  // Callbacks to Game
+  // Callbacks to Game & Announcer
   void Function(FighterComponent attacker, double damage, bool isCrit)? onHitLanded;
   void Function()? onClinchTriggered;
+  void Function(String eventLog)? onAnnouncerLog;
 
   FighterComponent({
     required this.fighter,
     required Vector2 position,
     required this.isFacingRight,
-    this.headbandColor = const Color(0xFFEF4444),
+    this.headbandColor = const Color(0xFFDC2626),
     this.sandoColor = const Color(0xFF1E293B),
   })  : currentHp = fighter.hp,
         currentStamina = fighter.stamina,
         super(position: position, size: Vector2(48, 80), priority: 10, anchor: Anchor.bottomCenter);
 
-  // Computed combat stats taking aura into account
   double get combatPower {
     double p = fighter.effectivePower;
     if (hasBiraAura) p *= 1.30;
@@ -84,16 +90,17 @@ class FighterComponent extends PositionComponent {
     return d;
   }
 
-  // Activate Coach Auras
+  // Coach Shouts (Zero Emojis!)
   void applyBira() {
     hasBiraAura = true;
     biraTimer = 5.0;
     parent?.add(FloatingTextComponent(
-      text: 'BIRA! (+30% Lakas & Bilis)',
+      text: '[BIRA! +30% LAKAS]',
       position: position + Vector2(-30, -90),
-      color: const Color(0xFFF97316),
-      fontSize: 13,
+      color: const Color(0xFFE6482E),
+      fontSize: 12,
     ));
+    onAnnouncerLog?.call('${fighter.name} sumugod sa sigaw ng Coach: BIRA!');
   }
 
   void applySalag() {
@@ -101,22 +108,24 @@ class FighterComponent extends PositionComponent {
     salagTimer = 5.0;
     animState = FighterAnimState.blocking;
     parent?.add(FloatingTextComponent(
-      text: 'SALAG! (+50% Depensa)',
+      text: '[SALAG! +50% DEP]',
       position: position + Vector2(-30, -90),
       color: const Color(0xFF38BDF8),
-      fontSize: 13,
+      fontSize: 12,
     ));
+    onAnnouncerLog?.call('${fighter.name} itinaas ang baston para sa depensang SALAG!');
   }
 
   void applyDiskarte() {
     hasDiskarteAura = true;
     diskarteTimer = 5.0;
     parent?.add(FloatingTextComponent(
-      text: 'DISKARTE! (Counter Focus)',
+      text: '[DISKARTE! SABONG LOCK]',
       position: position + Vector2(-30, -90),
-      color: const Color(0xFFEAB308),
-      fontSize: 13,
+      color: const Color(0xFFFDE047),
+      fontSize: 12,
     ));
+    onAnnouncerLog?.call('${fighter.name} naghanap ng sabong clinch sa DISKARTE command!');
   }
 
   @override
@@ -124,7 +133,11 @@ class FighterComponent extends PositionComponent {
     super.update(dt);
     animTimer += dt;
 
-    // Update Auras
+    if (dodgeGhostOpacity > 0) {
+      dodgeGhostOpacity -= dt * 3.0;
+      if (dodgeGhostOpacity <= 0) dodgeGhostPos = null;
+    }
+
     if (hasBiraAura) {
       biraTimer -= dt;
       if (biraTimer <= 0) hasBiraAura = false;
@@ -142,18 +155,16 @@ class FighterComponent extends PositionComponent {
       if (disarmTimer <= 0) isDisarmed = false;
     }
 
-    // Hit stun timer
     if (hitStunTimer > 0) {
       hitStunTimer -= dt;
-      if (hitStunTimer <= 0) {
-        animState = FighterAnimState.idle;
-      }
-      return; // stun freezes action
+      if (hitStunTimer <= 0) animState = FighterAnimState.idle;
+      return;
     }
 
-    // Strike progress
-    if (animState == FighterAnimState.striking) {
-      strikeProgress += dt * 4.0;
+    if (animState == FighterAnimState.striking ||
+        animState == FighterAnimState.signatureAbaniko ||
+        animState == FighterAnimState.signatureHeavenSix) {
+      strikeProgress += dt * 4.5;
       if (strikeProgress >= 1.0) {
         strikeProgress = 0.0;
         animState = FighterAnimState.idle;
@@ -161,12 +172,8 @@ class FighterComponent extends PositionComponent {
       return;
     }
 
-    // Clinch state
-    if (animState == FighterAnimState.clinch) {
-      return; // handled by mini-game
-    }
+    if (animState == FighterAnimState.clinch) return;
 
-    // AI & Auto-battler logic
     strikeCooldown -= dt;
     _runAutoBattlerAI(dt);
   }
@@ -179,26 +186,21 @@ class FighterComponent extends PositionComponent {
     final distance = (targetX - currentX).abs();
     const strikeRange = 64.0;
 
-    // In diskarte aura or close clash, chance to clinch
-    if (hasDiskarteAura && distance <= strikeRange + 10) {
+    if (hasDiskarteAura && distance <= strikeRange + 12) {
       triggerClinch();
       return;
     }
 
-    // Distance positioning
     if (distance > strikeRange + 10) {
-      // Step closer
       final dir = targetX > currentX ? 1.0 : -1.0;
       final stepSpeed = (35.0 + combatSpeed * 1.8);
       position.x += dir * stepSpeed * dt;
       animState = FighterAnimState.stepping;
     } else if (distance < strikeRange - 16) {
-      // Too close, retreat slightly
       final dir = targetX > currentX ? -1.0 : 1.0;
       position.x += dir * 25.0 * dt;
       animState = FighterAnimState.stepping;
     } else {
-      // In combat sweet spot
       if (strikeCooldown <= 0) {
         _attemptStrikeOrDefense();
       } else {
@@ -213,27 +215,32 @@ class FighterComponent extends PositionComponent {
     if (opponent == null) return;
     final rnd = Random();
 
-    // Roll for defense stance if opponent is currently striking
     if (opponent!.animState == FighterAnimState.striking && rnd.nextDouble() < (combatDefense / 60.0)) {
       animState = FighterAnimState.blocking;
       strikeCooldown = 0.35;
       return;
     }
 
-    // Roll to Strike
-    animState = FighterAnimState.striking;
+    // Roll for regular strike vs style signature move
+    if (rnd.nextDouble() < 0.20 && fighter.styleMasteries[fighter.style]! >= 2) {
+      if (fighter.style == FighterStyle.soloBaston) {
+        animState = FighterAnimState.signatureAbaniko;
+      } else {
+        animState = FighterAnimState.signatureHeavenSix;
+      }
+    } else {
+      animState = FighterAnimState.striking;
+    }
+
     strikeProgress = 0.0;
-    // Attack speed formula: higher speed = shorter cooldown
     final attackInterval = (1.4 - (combatSpeed * 0.025)).clamp(0.40, 1.30);
     strikeCooldown = attackInterval;
 
-    // Check if opponent also strikes simultaneously (Stick Sabong / Clash!)
     if (opponent!.animState == FighterAnimState.striking && rnd.nextDouble() < 0.28) {
       triggerClinch();
       return;
     }
 
-    // Execute Strike against Opponent
     _executeStrike();
   }
 
@@ -245,41 +252,50 @@ class FighterComponent extends PositionComponent {
     final opponentDodge = opponent!.combatSpeed * 0.6;
 
     if (hitRoll < opponentDodge) {
-      // Opponent Dodged!
+      // Dodge / Iwas! Leave afterimage ghost
+      opponent!.dodgeGhostPos = opponent!.position.clone();
+      opponent!.dodgeGhostOpacity = 0.7;
+
       opponent!.parent?.add(FloatingTextComponent(
-        text: 'IWAS! (Dodge)',
+        text: '[IWAS! DODGE]',
         position: opponent!.position + Vector2(-15, -70),
-        color: const Color(0xFF6EE7B7),
-        fontSize: 12,
+        color: const Color(0xFF4ADE80),
+        fontSize: 11,
       ));
+      onAnnouncerLog?.call('${opponent!.fighter.name} mabilis na umilag sa palo!');
       return;
     }
 
-    // Opponent Block Check
+    // Block / Salag!
     if (opponent!.animState == FighterAnimState.blocking ||
-        (opponent!.hasSalagAura) ||
+        opponent!.hasSalagAura ||
         (rnd.nextDouble() < (opponent!.combatDefense / 85.0))) {
       opponent!.parent?.add(FloatingTextComponent(
-        text: 'SALAG! (Block)',
+        text: '[SALAG! BLOCK]',
         position: opponent!.position + Vector2(-15, -70),
-        color: const Color(0xFF93C5FD),
-        fontSize: 12,
+        color: const Color(0xFF38BDF8),
+        fontSize: 11,
       ));
 
-      // Heavily mitigated chip damage
       final chipDamage = max(1.0, (combatPower * 0.15) - (opponent!.combatDefense * 0.1));
       opponent!.receiveDamage(chipDamage, isCrit: false, fromAttacker: this);
+      onAnnouncerLog?.call('Tumataginting na SALAG! Nasangga ang palo!');
       return;
     }
 
-    // Regular or Critical Hit
-    final critChance = (combatTechnique / 75.0).clamp(0.05, 0.45);
+    // Crit or Hit
+    final isSpecialMove = animState == FighterAnimState.signatureAbaniko || animState == FighterAnimState.signatureHeavenSix;
+    final critChance = ((combatTechnique / 75.0) + (isSpecialMove ? 0.25 : 0.0)).clamp(0.05, 0.60);
     final isCrit = rnd.nextDouble() < critChance;
 
     double damage = combatPower * (isCrit ? 1.75 : 1.0) + (rnd.nextDouble() * 4.0);
     damage = max(3.0, damage - (opponent!.combatDefense * 0.3));
 
     opponent!.receiveDamage(damage, isCrit: isCrit, fromAttacker: this);
+
+    if (isCrit) {
+      onAnnouncerLog?.call('NAPAKALAKAS! Tumagos ang palo ni ${fighter.name}!');
+    }
   }
 
   void receiveDamage(double damage, {required bool isCrit, required FighterComponent fromAttacker}) {
@@ -287,20 +303,18 @@ class FighterComponent extends PositionComponent {
     hitStunTimer = isCrit ? 0.35 : 0.20;
     animState = FighterAnimState.hitStun;
 
-    // Knockback
     final knockDir = position.x > fromAttacker.position.x ? 1.0 : -1.0;
     position.x += knockDir * (isCrit ? 18.0 : 8.0);
 
-    // Floating text
-    final displayText = isCrit ? 'LAKAS! -${damage.toStringAsFixed(0)}' : '-${damage.toStringAsFixed(0)}';
-    final textColor = isCrit ? const Color(0xFFEF4444) : const Color(0xFFFBBF24);
+    final displayText = isCrit ? '[LAKAS!] -${damage.toInt()}' : '-${damage.toInt()}';
+    final textColor = isCrit ? const Color(0xFFDC2626) : const Color(0xFFF4B41B);
 
     parent?.add(FloatingTextComponent(
       text: displayText,
       position: position + Vector2(-15, -75),
       color: textColor,
-      fontSize: isCrit ? 16 : 13,
-      upwardSpeed: isCrit ? 65 : 45,
+      fontSize: isCrit ? 15 : 12,
+      upwardSpeed: isCrit ? 60 : 40,
     ));
 
     onHitLanded?.call(fromAttacker, damage, isCrit);
@@ -312,11 +326,12 @@ class FighterComponent extends PositionComponent {
       opponent!.animState = FighterAnimState.clinch;
     }
     parent?.add(FloatingTextComponent(
-      text: '⚡ SABONG! (STICK LOCK) ⚡',
+      text: '[SABONG! STICK LOCK]',
       position: Vector2((position.x + (opponent?.position.x ?? position.x)) / 2 - 40, position.y - 85),
       color: const Color(0xFFFDE047),
-      fontSize: 14,
+      fontSize: 13,
     ));
+    onAnnouncerLog?.call('REFEREE: Sabong! Nagkapit ang mga baston!');
     onClinchTriggered?.call();
   }
 
@@ -324,20 +339,27 @@ class FighterComponent extends PositionComponent {
     isDisarmed = true;
     disarmTimer = 6.0;
     parent?.add(FloatingTextComponent(
-      text: 'AGAW-BASTON! (DISARMED -50% DMG)',
+      text: '[AGAW-BASTON! -50% DMG]',
       position: position + Vector2(-40, -95),
-      color: const Color(0xFFF43F5E),
-      fontSize: 13,
+      color: const Color(0xFFE6482E),
+      fontSize: 12,
     ));
+    onAnnouncerLog?.call('AGAW-BASTON! Nalaglag ang baston ni ${fighter.name}!');
   }
 
   @override
   void render(Canvas canvas) {
     super.render(canvas);
 
-    canvas.save();
+    // Draw Dodge Afterimage ghost if active
+    if (dodgeGhostPos != null && dodgeGhostOpacity > 0) {
+      canvas.save();
+      final ghostPaint = Paint()..color = const Color(0xFF38BDF8).withValues(alpha: dodgeGhostOpacity * 0.5);
+      canvas.drawRect(Rect.fromLTWH(0, 0, size.x, size.y), ghostPaint);
+      canvas.restore();
+    }
 
-    // Flip horizontally if facing left
+    canvas.save();
     if (!isFacingRight) {
       canvas.scale(-1, 1);
       canvas.translate(-size.x, 0);
@@ -352,38 +374,27 @@ class FighterComponent extends PositionComponent {
   void _renderAuras(Canvas canvas) {
     if (hasBiraAura) {
       final biraPaint = Paint()
-        ..color = const Color(0x66FF5722)
-        ..style = PaintingStyle.fill
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
-      canvas.drawOval(
-        Rect.fromCenter(center: Offset(size.x * 0.5, size.y * 0.5), width: size.x + 22, height: size.y + 16),
-        biraPaint,
-      );
+        ..color = const Color(0x66E6482E)
+        ..style = PaintingStyle.fill;
+      canvas.drawRect(Rect.fromLTWH(-4, -4, size.x + 8, size.y + 8), biraPaint);
     }
-
     if (hasSalagAura) {
       final salagPaint = Paint()
-        ..color = const Color(0x660284C7)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 4
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
-      canvas.drawCircle(Offset(size.x * 0.5, size.y * 0.5), size.y * 0.52, salagPaint);
-    }
-
-    if (hasDiskarteAura) {
-      final diskartePaint = Paint()
-        ..color = const Color(0x77EAB308)
+        ..color = const Color(0xFF38BDF8)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 3;
-      canvas.drawOval(
-        Rect.fromCenter(center: Offset(size.x * 0.5, size.y * 0.5), width: size.x + 16, height: size.y + 12),
-        diskartePaint,
-      );
+      canvas.drawRect(Rect.fromLTWH(-2, -2, size.x + 4, size.y + 4), salagPaint);
+    }
+    if (hasDiskarteAura) {
+      final diskartePaint = Paint()
+        ..color = const Color(0xFFFDE047)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2;
+      canvas.drawRect(Rect.fromLTWH(0, 0, size.x, size.y), diskartePaint);
     }
   }
 
   void _renderProceduralPixelFighter(Canvas canvas) {
-    // Breathing idle offset
     double bounceY = 0;
     if (animState == FighterAnimState.idle) {
       bounceY = sin(animTimer * 5.0) * 1.5;
@@ -393,176 +404,164 @@ class FighterComponent extends PositionComponent {
       bounceY = (Random().nextDouble() - 0.5) * 4.0;
     }
 
-    final outlinePaint = Paint()
-      ..color = Colors.black
+    final outline = Paint()
+      ..color = const Color(0xFF1A1C2C)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2;
 
-    final skinPaint = Paint()
+    final skin = Paint()
       ..color = animState == FighterAnimState.hitStun
-          ? const Color(0xFFFF6B6B)
-          : const Color(0xFFD49B6A); // Warm Filipino skin tone
+          ? const Color(0xFFE6482E)
+          : const Color(0xFFF2B880);
 
-    // 1. LEGS & FOOTWEAR
-    final pantsPaint = Paint()..color = const Color(0xFF1E293B);
-    final shoePaint = Paint()..color = const Color(0xFFDC2626);
+    // Legs & Shoes
+    final pants = Paint()..color = const Color(0xFF1E293B);
+    final shoes = Paint()..color = const Color(0xFFDC2626);
 
-    // Left leg
-    canvas.drawRect(Rect.fromLTWH(12, 54 + bounceY, 8, 20), pantsPaint);
-    canvas.drawRect(Rect.fromLTWH(12, 54 + bounceY, 8, 20), outlinePaint);
-    canvas.drawRect(Rect.fromLTWH(10, 72 + bounceY, 12, 6), shoePaint);
-    canvas.drawRect(Rect.fromLTWH(10, 72 + bounceY, 12, 6), outlinePaint);
+    canvas.drawRect(Rect.fromLTWH(12, 54 + bounceY, 8, 20), pants);
+    canvas.drawRect(Rect.fromLTWH(12, 54 + bounceY, 8, 20), outline);
+    canvas.drawRect(Rect.fromLTWH(10, 72 + bounceY, 12, 6), shoes);
+    canvas.drawRect(Rect.fromLTWH(10, 72 + bounceY, 12, 6), outline);
 
-    // Right leg
-    canvas.drawRect(Rect.fromLTWH(26, 54 + bounceY, 8, 20), pantsPaint);
-    canvas.drawRect(Rect.fromLTWH(26, 54 + bounceY, 8, 20), outlinePaint);
-    canvas.drawRect(Rect.fromLTWH(26, 72 + bounceY, 12, 6), shoePaint);
-    canvas.drawRect(Rect.fromLTWH(26, 72 + bounceY, 12, 6), outlinePaint);
+    canvas.drawRect(Rect.fromLTWH(26, 54 + bounceY, 8, 20), pants);
+    canvas.drawRect(Rect.fromLTWH(26, 54 + bounceY, 8, 20), outline);
+    canvas.drawRect(Rect.fromLTWH(26, 72 + bounceY, 12, 6), shoes);
+    canvas.drawRect(Rect.fromLTWH(26, 72 + bounceY, 12, 6), outline);
 
-    // 2. TORSO & SANDO / ARMOR
-    final bodyPaint = Paint()..color = sandoColor;
-    canvas.drawRect(Rect.fromLTWH(13, 26 + bounceY, 22, 28), bodyPaint);
-    canvas.drawRect(Rect.fromLTWH(13, 26 + bounceY, 22, 28), outlinePaint);
+    // Torso / Sando
+    final body = Paint()..color = sandoColor;
+    canvas.drawRect(Rect.fromLTWH(13, 26 + bounceY, 22, 28), body);
+    canvas.drawRect(Rect.fromLTWH(13, 26 + bounceY, 22, 28), outline);
 
-    // Red/Blue sash or belt
-    final beltPaint = Paint()..color = headbandColor;
-    canvas.drawRect(Rect.fromLTWH(12, 48 + bounceY, 24, 6), beltPaint);
-    canvas.drawRect(Rect.fromLTWH(12, 48 + bounceY, 24, 6), outlinePaint);
+    // Sash Belt
+    final belt = Paint()..color = headbandColor;
+    canvas.drawRect(Rect.fromLTWH(12, 48 + bounceY, 24, 6), belt);
+    canvas.drawRect(Rect.fromLTWH(12, 48 + bounceY, 24, 6), outline);
 
-    // 3. HEAD & HEADBAND
-    // Neck
-    canvas.drawRect(Rect.fromLTWH(21, 20 + bounceY, 6, 8), skinPaint);
-
-    // Head
-    canvas.drawRect(Rect.fromLTWH(14, 4 + bounceY, 20, 18), skinPaint);
-    canvas.drawRect(Rect.fromLTWH(14, 4 + bounceY, 20, 18), outlinePaint);
+    // Neck & Head
+    canvas.drawRect(Rect.fromLTWH(21, 20 + bounceY, 6, 8), skin);
+    canvas.drawRect(Rect.fromLTWH(14, 4 + bounceY, 20, 18), skin);
+    canvas.drawRect(Rect.fromLTWH(14, 4 + bounceY, 20, 18), outline);
 
     // Dark Hair
-    final hairPaint = Paint()..color = const Color(0xFF171717);
-    canvas.drawRect(Rect.fromLTWH(13, 2 + bounceY, 22, 7), hairPaint);
-    canvas.drawRect(Rect.fromLTWH(12, 5 + bounceY, 4, 10), hairPaint);
+    final hair = Paint()..color = const Color(0xFF171717);
+    canvas.drawRect(Rect.fromLTWH(13, 2 + bounceY, 22, 7), hair);
 
-    // Arnis Colored Headband
-    final headBandPaint = Paint()..color = headbandColor;
-    canvas.drawRect(Rect.fromLTWH(13, 7 + bounceY, 22, 5), headBandPaint);
-    // Headband knot ribbon trailing behind
-    canvas.drawRect(Rect.fromLTWH(8, 9 + bounceY, 6, 4), headBandPaint);
+    // Headband
+    canvas.drawRect(Rect.fromLTWH(13, 7 + bounceY, 22, 5), belt);
+    canvas.drawRect(Rect.fromLTWH(8, 9 + bounceY, 6, 4), belt);
 
-    // Eyes
-    final eyePaint = Paint()..color = Colors.black;
-    canvas.drawRect(Rect.fromLTWH(27, 14 + bounceY, 3, 3), eyePaint);
+    // Eye
+    final eye = Paint()..color = Colors.black;
+    canvas.drawRect(Rect.fromLTWH(27, 14 + bounceY, 3, 3), eye);
 
-    // 4. ARMS & BASTON WEAPONS
-    _renderArmsAndSticks(canvas, bounceY, skinPaint, outlinePaint);
+    // Bastons & Arms
+    _renderBastonsAndArms(canvas, bounceY, skin, outline);
   }
 
-  void _renderArmsAndSticks(
-    Canvas canvas,
-    double bounceY,
-    Paint skinPaint,
-    Paint outlinePaint,
-  ) {
+  void _renderBastonsAndArms(Canvas canvas, double bounceY, Paint skin, Paint outline) {
     final stickPaint = _getWeaponPaint();
 
-    if (animState == FighterAnimState.striking) {
-      // Swing arc animation
-      final swingAngle = (-0.8 + (strikeProgress * 1.6)) * pi;
-
+    if (animState == FighterAnimState.signatureAbaniko) {
+      // Abaniko 3-fanning arc motion trail
+      final swingAngle = (-0.9 + (strikeProgress * 1.8)) * pi;
       canvas.save();
       canvas.translate(28, 30 + bounceY);
       canvas.rotate(swingAngle);
 
-      // Forearm
-      canvas.drawRect(const Rect.fromLTWH(0, -3, 16, 6), skinPaint);
-      canvas.drawRect(const Rect.fromLTWH(0, -3, 16, 6), outlinePaint);
-
-      // Baston stick
+      canvas.drawRect(const Rect.fromLTWH(0, -3, 16, 6), skin);
+      canvas.drawRect(const Rect.fromLTWH(0, -3, 16, 6), outline);
       canvas.drawRect(const Rect.fromLTWH(12, -26, 5, 52), stickPaint);
-      canvas.drawRect(const Rect.fromLTWH(12, -26, 5, 52), outlinePaint);
+      canvas.drawRect(const Rect.fromLTWH(12, -26, 5, 52), outline);
 
-      // Motion Trail
-      final trailPaint = Paint()
-        ..color = const Color(0x55FFFFFF)
-        ..style = PaintingStyle.fill;
-      canvas.drawArc(
-        const Rect.fromLTWH(-20, -35, 70, 70),
-        -pi * 0.4,
-        pi * 0.8,
-        true,
-        trailPaint,
-      );
+      // 3 Fanning Arc Trail Slices
+      final fanPaint = Paint()
+        ..color = const Color(0x66FDE047)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3;
+      canvas.drawArc(const Rect.fromLTWH(-30, -45, 90, 90), -pi * 0.5, pi * 0.9, false, fanPaint);
+
+      canvas.restore();
+    } else if (animState == FighterAnimState.signatureHeavenSix) {
+      // Doble baston sinawali flurry
+      final weave = sin(strikeProgress * 4 * pi) * 10;
+      canvas.save();
+      canvas.translate(28, 28 + bounceY);
+
+      canvas.drawRect(Rect.fromLTWH(0, -3 + weave, 16, 6), skin);
+      canvas.drawRect(Rect.fromLTWH(12, -24 + weave, 5, 48), stickPaint);
+      canvas.drawRect(Rect.fromLTWH(12, -24 + weave, 5, 48), outline);
+
+      canvas.drawRect(Rect.fromLTWH(-8, 4 - weave, 16, 6), skin);
+      canvas.drawRect(Rect.fromLTWH(4, -18 - weave, 5, 48), stickPaint);
+      canvas.drawRect(Rect.fromLTWH(4, -18 - weave, 5, 48), outline);
+
+      canvas.restore();
+    } else if (animState == FighterAnimState.striking) {
+      final swingAngle = (-0.8 + (strikeProgress * 1.6)) * pi;
+      canvas.save();
+      canvas.translate(28, 30 + bounceY);
+      canvas.rotate(swingAngle);
+
+      canvas.drawRect(const Rect.fromLTWH(0, -3, 16, 6), skin);
+      canvas.drawRect(const Rect.fromLTWH(0, -3, 16, 6), outline);
+      canvas.drawRect(const Rect.fromLTWH(12, -26, 5, 52), stickPaint);
+      canvas.drawRect(const Rect.fromLTWH(12, -26, 5, 52), outline);
 
       canvas.restore();
     } else if (animState == FighterAnimState.blocking) {
-      // Crossed block
       canvas.save();
       canvas.translate(32, 28 + bounceY);
       canvas.rotate(-0.35);
 
-      // Arm
-      canvas.drawRect(const Rect.fromLTWH(0, -3, 15, 6), skinPaint);
-      canvas.drawRect(const Rect.fromLTWH(0, -3, 15, 6), outlinePaint);
-
-      // Stick in 45-degree angle
+      canvas.drawRect(const Rect.fromLTWH(0, -3, 15, 6), skin);
+      canvas.drawRect(const Rect.fromLTWH(0, -3, 15, 6), outline);
       canvas.drawRect(const Rect.fromLTWH(10, -25, 5, 50), stickPaint);
-      canvas.drawRect(const Rect.fromLTWH(10, -25, 5, 50), outlinePaint);
+      canvas.drawRect(const Rect.fromLTWH(10, -25, 5, 50), outline);
+
+      // Block shield spark
+      final shieldPaint = Paint()
+        ..color = const Color(0x8838BDF8)
+        ..style = PaintingStyle.fill;
+      canvas.drawRect(const Rect.fromLTWH(6, -28, 12, 56), shieldPaint);
 
       canvas.restore();
     } else if (animState == FighterAnimState.clinch) {
-      // Locked sticks with spark
       canvas.save();
       canvas.translate(36, 26 + bounceY);
       canvas.rotate(0.2);
 
-      canvas.drawRect(const Rect.fromLTWH(0, -3, 14, 6), skinPaint);
+      canvas.drawRect(const Rect.fromLTWH(0, -3, 14, 6), skin);
       canvas.drawRect(const Rect.fromLTWH(8, -28, 5, 56), stickPaint);
-      canvas.drawRect(const Rect.fromLTWH(8, -28, 5, 56), outlinePaint);
+      canvas.drawRect(const Rect.fromLTWH(8, -28, 5, 56), outline);
 
-      // Clashing spark
-      final sparkPaint = Paint()..color = const Color(0xFFFDE047);
-      canvas.drawCircle(const Offset(10, -10), 5 + (sin(animTimer * 20.0) * 3), sparkPaint);
+      final spark = Paint()..color = const Color(0xFFFDE047);
+      canvas.drawRect(Rect.fromCenter(center: const Offset(10, -10), width: 10, height: 10), spark);
 
       canvas.restore();
     } else {
-      // Idle / Stepping Stance based on Style
-      switch (fighter.style) {
-        case FighterStyle.soloBaston:
-          // Right forward arm holding single stick
-          canvas.drawRect(Rect.fromLTWH(26, 30 + bounceY, 12, 6), skinPaint);
-          canvas.drawRect(Rect.fromLTWH(26, 30 + bounceY, 12, 6), outlinePaint);
+      // Idle Style Stance
+      if (fighter.style == FighterStyle.soloBaston) {
+        canvas.drawRect(Rect.fromLTWH(26, 30 + bounceY, 12, 6), skin);
+        canvas.drawRect(Rect.fromLTWH(34, 10 + bounceY, 5, 42), stickPaint);
+        canvas.drawRect(Rect.fromLTWH(34, 10 + bounceY, 5, 42), outline);
+      } else if (fighter.style == FighterStyle.dobleBaston) {
+        canvas.drawRect(Rect.fromLTWH(26, 28 + bounceY, 12, 6), skin);
+        canvas.drawRect(Rect.fromLTWH(35, 8 + bounceY, 5, 42), stickPaint);
+        canvas.drawRect(Rect.fromLTWH(35, 8 + bounceY, 5, 42), outline);
 
-          canvas.drawRect(Rect.fromLTWH(34, 10 + bounceY, 5, 42), stickPaint);
-          canvas.drawRect(Rect.fromLTWH(34, 10 + bounceY, 5, 42), outlinePaint);
+        canvas.drawRect(Rect.fromLTWH(14, 30 + bounceY, 10, 6), skin);
+        canvas.drawRect(Rect.fromLTWH(10, 12 + bounceY, 5, 38), stickPaint);
+        canvas.drawRect(Rect.fromLTWH(10, 12 + bounceY, 5, 38), outline);
+      } else {
+        canvas.drawRect(Rect.fromLTWH(26, 28 + bounceY, 12, 6), skin);
+        canvas.drawRect(Rect.fromLTWH(36, 6 + bounceY, 5, 46), stickPaint);
+        canvas.drawRect(Rect.fromLTWH(36, 6 + bounceY, 5, 46), outline);
 
-          // Left guard hand
-          canvas.drawRect(Rect.fromLTWH(18, 32 + bounceY, 8, 6), skinPaint);
-          break;
-
-        case FighterStyle.dobleBaston:
-          // Twin sticks (Sinawali guard)
-          // Front stick
-          canvas.drawRect(Rect.fromLTWH(26, 28 + bounceY, 12, 6), skinPaint);
-          canvas.drawRect(Rect.fromLTWH(35, 8 + bounceY, 5, 42), stickPaint);
-          canvas.drawRect(Rect.fromLTWH(35, 8 + bounceY, 5, 42), outlinePaint);
-
-          // Rear stick
-          canvas.drawRect(Rect.fromLTWH(14, 30 + bounceY, 10, 6), skinPaint);
-          canvas.drawRect(Rect.fromLTWH(10, 12 + bounceY, 5, 38), stickPaint);
-          canvas.drawRect(Rect.fromLTWH(10, 12 + bounceY, 5, 38), outlinePaint);
-          break;
-
-        case FighterStyle.espadaYDaga:
-          // Long Baston in front, Dagger in rear
-          canvas.drawRect(Rect.fromLTWH(26, 28 + bounceY, 12, 6), skinPaint);
-          canvas.drawRect(Rect.fromLTWH(36, 6 + bounceY, 5, 46), stickPaint);
-          canvas.drawRect(Rect.fromLTWH(36, 6 + bounceY, 5, 46), outlinePaint);
-
-          // Dagger (short wooden or steel blade)
-          final daggerPaint = Paint()..color = const Color(0xFFCBD5E1);
-          canvas.drawRect(Rect.fromLTWH(14, 32 + bounceY, 10, 6), skinPaint);
-          canvas.drawRect(Rect.fromLTWH(16, 22 + bounceY, 4, 16), daggerPaint);
-          canvas.drawRect(Rect.fromLTWH(16, 22 + bounceY, 4, 16), outlinePaint);
-          break;
+        final dagger = Paint()..color = const Color(0xFFCBD5E1);
+        canvas.drawRect(Rect.fromLTWH(14, 32 + bounceY, 10, 6), skin);
+        canvas.drawRect(Rect.fromLTWH(16, 22 + bounceY, 4, 16), dagger);
+        canvas.drawRect(Rect.fromLTWH(16, 22 + bounceY, 4, 16), outline);
       }
     }
   }
@@ -570,14 +569,13 @@ class FighterComponent extends PositionComponent {
   Paint _getWeaponPaint() {
     final weaponId = fighter.equippedWeapon.id;
     if (weaponId == 'padded_stick') {
-      return Paint()..color = headbandColor; // red or blue padded stick
+      return Paint()..color = headbandColor;
     } else if (weaponId == 'bahi') {
-      return Paint()..color = const Color(0xFF5C3317); // Dark brown palm wood
+      return Paint()..color = const Color(0xFF564064);
     } else if (weaponId == 'kamagong') {
-      return Paint()..color = const Color(0xFF1C1917); // Jet black ironwood
+      return Paint()..color = const Color(0xFF1A1C2C);
     } else {
-      // Yantok / Rattan
-      return Paint()..color = const Color(0xFFDDB673); // Bamboo tan
+      return Paint()..color = const Color(0xFFF4B41B);
     }
   }
 }

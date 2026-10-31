@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../game/arnis_match_game.dart';
 import '../../models/fighter_model.dart';
+import '../retro_ui.dart';
 
 class TimingMiniGameOverlay extends StatefulWidget {
   final ArnisMatchGame game;
@@ -22,7 +23,6 @@ class _TimingMiniGameOverlayState extends State<TimingMiniGameOverlay>
   @override
   void initState() {
     super.initState();
-    // Indicator swings back and forth quickly
     _animController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 650),
@@ -40,11 +40,10 @@ class _TimingMiniGameOverlayState extends State<TimingMiniGameOverlay>
     _hasTapped = true;
     _animController.stop();
 
-    final indicatorValue = _animController.value; // 0.0 to 1.0
-    // Technique stat widens the sweet spot!
+    final indicatorValue = _animController.value;
     final technique = widget.game.player.combatTechnique;
     final halfZoneWidth = (0.12 + (technique * 0.0035)).clamp(0.12, 0.32);
-    final center = 0.50;
+    const center = 0.50;
 
     final distFromCenter = (indicatorValue - center).abs();
 
@@ -52,23 +51,20 @@ class _TimingMiniGameOverlayState extends State<TimingMiniGameOverlay>
     bool isSuccess = false;
 
     if (distFromCenter <= (halfZoneWidth * 0.35)) {
-      // Golden Core Bullseye
       isPerfect = true;
       isSuccess = true;
-      _resultFeedback = '🔥 ASINTADO! PERFECT HIT! 🔥';
-      _feedbackColor = const Color(0xFFFBBF24);
+      _resultFeedback = '[ASINTADO! PERFECT COUNTER!]';
+      _feedbackColor = const Color(0xFFFDE047);
     } else if (distFromCenter <= halfZoneWidth) {
-      // Green Target Zone
       isPerfect = false;
       isSuccess = true;
-      _resultFeedback = '⚡ SOLID STRIKE! ⚡';
+      _resultFeedback = '[SOLIDONG PALO! GOOD HIT!]';
       _feedbackColor = const Color(0xFF4ADE80);
     } else {
-      // Missed
       isPerfect = false;
       isSuccess = false;
-      _resultFeedback = '❌ SABLAY! (MISSED!) ❌';
-      _feedbackColor = const Color(0xFFF87171);
+      _resultFeedback = '[SABLAY! COUNTERED BY OPPONENT!]';
+      _feedbackColor = const Color(0xFFDC2626);
     }
 
     setState(() {});
@@ -90,47 +86,23 @@ class _TimingMiniGameOverlayState extends State<TimingMiniGameOverlay>
     final totalZoneFactor = halfZoneWidth * 2;
 
     return Center(
-      child: Container(
+      child: RetroBox(
         width: 380,
-        margin: const EdgeInsets.symmetric(horizontal: 20),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: const Color(0xFF0F172A).withValues(alpha: 0.95),
-          border: Border.all(color: const Color(0xFFFACC15), width: 3),
-          borderRadius: BorderRadius.circular(8),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.6),
-              blurRadius: 16,
-              spreadRadius: 4,
-            ),
-          ],
-        ),
+        title: 'SABONG CLINCH: TIMING TEST',
+        backgroundColor: const Color(0xFF0F172A),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // HEADER
-            const Text(
-              '⚡ SABONG CLINCH: TIMING TEST ⚡',
-              style: TextStyle(
-                color: Color(0xFFFACC15),
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
-                fontFamily: 'monospace',
-                letterSpacing: 1.2,
-              ),
-            ),
-            const SizedBox(height: 4),
             Text(
-              'Tamaan ang Gitna para sa ${widget.game.playerFighter.style.signatureMove}!',
+              'Tamaan ang Gitnang Gold para sa ${widget.game.playerFighter.style.signatureMove}!',
               textAlign: TextAlign.center,
               style: const TextStyle(
-                color: Color(0xFFE2E8F0),
-                fontSize: 11,
+                color: Color(0xFFF4ECE1),
+                fontSize: 10,
                 fontFamily: 'monospace',
               ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
 
             // TIMING METER BAR
             AnimatedBuilder(
@@ -143,17 +115,16 @@ class _TimingMiniGameOverlayState extends State<TimingMiniGameOverlay>
                     Stack(
                       alignment: Alignment.center,
                       children: [
-                        // Background Bar
                         Container(
                           height: 36,
                           width: double.infinity,
                           decoration: BoxDecoration(
                             color: const Color(0xFF1E293B),
-                            border: Border.all(color: Colors.white, width: 2),
+                            border: Border.all(color: const Color(0xFF1A1C2C), width: 3),
                           ),
                         ),
 
-                        // Green Target Zone (Technique-Scaled)
+                        // Green Target Zone
                         FractionallySizedBox(
                           widthFactor: totalZoneFactor,
                           child: Container(
@@ -167,19 +138,19 @@ class _TimingMiniGameOverlayState extends State<TimingMiniGameOverlay>
                           widthFactor: totalZoneFactor * 0.35,
                           child: Container(
                             height: 36,
-                            color: const Color(0xFFFACC15),
+                            color: const Color(0xFFF4B41B),
                           ),
                         ),
 
                         // Moving Indicator Pin
                         Positioned(
-                          left: (380 - 32) * indicatorVal,
+                          left: (380 - 48) * indicatorVal,
                           child: Container(
                             width: 6,
                             height: 44,
                             decoration: BoxDecoration(
                               color: Colors.white,
-                              border: Border.all(color: Colors.black, width: 1.5),
+                              border: Border.all(color: const Color(0xFF1A1C2C), width: 1.5),
                               boxShadow: const [
                                 BoxShadow(
                                   color: Colors.white,
@@ -197,15 +168,14 @@ class _TimingMiniGameOverlayState extends State<TimingMiniGameOverlay>
               },
             ),
 
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
 
-            // RESULT FEEDBACK OR INSTRUCTION
             if (_hasTapped)
               Text(
                 _resultFeedback,
                 style: TextStyle(
                   color: _feedbackColor,
-                  fontSize: 14,
+                  fontSize: 12,
                   fontWeight: FontWeight.bold,
                   fontFamily: 'monospace',
                 ),
@@ -214,8 +184,8 @@ class _TimingMiniGameOverlayState extends State<TimingMiniGameOverlay>
               Text(
                 'Diskarte Stat (+${technique.toInt()}) pinapalawak ang Gold Sweet Spot!',
                 style: const TextStyle(
-                  color: Color(0xFF94A3B8),
-                  fontSize: 10,
+                  color: Color(0xFF8B9BB4),
+                  fontSize: 9,
                   fontFamily: 'monospace',
                 ),
               ),
@@ -223,28 +193,26 @@ class _TimingMiniGameOverlayState extends State<TimingMiniGameOverlay>
             const SizedBox(height: 14),
 
             // TAP BUTTON
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: ElevatedButton(
-                onPressed: _hasTapped ? null : _onStrikeAttempt,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFDC2626),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(4),
-                    side: const BorderSide(color: Colors.white, width: 2),
+            RetroButton(
+              height: 44,
+              color: const Color(0xFFE6482E),
+              onTap: _hasTapped ? null : _onStrikeAttempt,
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  PixelSpriteWidget(matrix: PixelArtCatalog.iconSpar, pixelSize: 1.2),
+                  SizedBox(width: 8),
+                  Text(
+                    'HATAW NA! (STRIKE / COUNTER)',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'monospace',
+                      letterSpacing: 1.0,
+                    ),
                   ),
-                ),
-                child: const Text(
-                  'PALO NA! (STRIKE / COUNTER)',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'monospace',
-                    letterSpacing: 1.0,
-                  ),
-                ),
+                ],
               ),
             ),
           ],
