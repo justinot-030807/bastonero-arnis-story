@@ -2,11 +2,18 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import '../domain/balance.dart';
+import '../domain/models/alumni.dart';
 import '../domain/models/camp.dart';
 import '../domain/models/equipment.dart';
+import '../domain/models/event.dart';
 import '../domain/models/focus_tap.dart';
 import '../domain/models/monthly_ledger.dart';
 import '../domain/models/student.dart';
+import '../domain/rng.dart';
+import '../domain/systems/data_loader.dart';
+import '../domain/systems/event_system.dart';
+import '../domain/systems/graduation_system.dart';
+import '../domain/systems/recruitment_system.dart';
 import '../models/fighter_model.dart';
 import '../models/facility_model.dart';
 import '../models/tournament_model.dart';
@@ -71,6 +78,14 @@ class GameStateProvider extends ChangeNotifier {
   int scholarshipPoints = 0;
   int highestParticipatedTierCommunity = 1;
   int highestParticipatedTierSchool = 1;
+
+  // Phase 6: Events, Recruitment & Graduation
+  late EventSystem eventSystem;
+  final Map<String, int> eventCooldowns = {};
+  GameEvent? activeEventDialog;
+  RecruitmentCandidate? activeRecruitDialog;
+  GraduationCandidate? activeGraduationDialog;
+  final GameRng _gameRng = GameRng();
 
   // Camp & Multi-Floor Architecture (14-tile lane per floor)
   late Camp camp;
@@ -200,7 +215,16 @@ class GameStateProvider extends ChangeNotifier {
     week = 1;
     pesos = 650;
     prestige = 0;
+    scholarshipPoints = 0;
+    highestParticipatedTierCommunity = 1;
+    highestParticipatedTierSchool = 1;
     maxSlots = 2; // Cutaway begins with 2 slots, expands to 4 then 6
+
+    eventSystem = EventSystem(events: DataLoader.eventCatalog);
+    eventCooldowns.clear();
+    activeEventDialog = null;
+    activeRecruitDialog = null;
+    activeGraduationDialog = null;
 
     slots = List<FacilityModel?>.filled(8, null);
     // Starter facility in slot 0: Gulong Target
@@ -599,6 +623,19 @@ class GameStateProvider extends ChangeNotifier {
 
   // WEEK ADVANCEMENT & CALENDAR LOGIC
   void advanceOneWeek({String actionSummary = ''}) {
+    // 0. Event cooldowns tick down
+    final expiredCooldowns = <String>[];
+    for (final entry in eventCooldowns.entries) {
+      if (entry.value <= 1) {
+        expiredCooldowns.add(entry.key);
+      } else {
+        eventCooldowns[entry.key] = entry.value - 1;
+      }
+    }
+    for (final k in expiredCooldowns) {
+      eventCooldowns.remove(k);
+    }
+
     // 1. Bailout debt repayment deduction if loan is active
     if (bailoutWeeksRemaining > 0) {
       final payment = min(pesos, bailoutWeeklyPayment);
@@ -655,6 +692,14 @@ class GameStateProvider extends ChangeNotifier {
 
     // 5. Month End Rollover Accounting & Summary
     if (isMonthEndRollover) {
+      // Add Alumni Sponsorships
+      final alumniSponsors = camp.monthlyAlumniSponsorships;
+      if (alumniSponsors > 0) {
+        pesos += alumniSponsors;
+        currentMonthSponsors += alumniSponsors;
+        camp.money = pesos;
+      }
+
       final upkeep = camp.monthlyUpkeep;
       final salaries = camp.monthlyTrainerSalaries;
       pesos -= (upkeep + salaries);
@@ -684,6 +729,34 @@ class GameStateProvider extends ChangeNotifier {
       );
       shouldShowMonthlySummary = true;
       autoPause();
+
+      // Check for Monthly Walk-in Recruit
+      final tarpaulinCount = camp.placements.where((p) => p.equipmentId == 'tarpaulin').length;
+      final walkInChance = RecruitmentSystem.calculateWalkInChance(
+        fame: camp.fame,
+        tarpaulinCount: tarpaulinCount,
+      );
+      if (_gameRng.nextDouble() < walkInChance && RecruitmentSystem.hasCapacity(camp)) {
+        activeRecruitDialog = RecruitmentSystem.generateCandidate(
+          rng: _gameRng,
+          year: year,
+          isScholarship: false,
+          maleFirstNames: DataLoader.maleNames,
+          femaleFirstNames: DataLoader.femaleNames,
+          lastNames: DataLoader.lastNames,
+          nicknames: DataLoader.nicknames,
+        );
+        autoPause();
+      }
+
+      // Check for End-of-School-Year Graduation in March (Month 3)
+      if (oldMonth == 3) {
+        final gradRes = GraduationSystem.processSchoolYearEnd(camp: camp, year: oldYear);
+        if (gradRes.graduationCandidates.isNotEmpty) {
+          activeGraduationDialog = gradRes.graduationCandidates.first;
+          autoPause();
+        }
+      }
 
       month += 1;
       if (month > 12) {
@@ -715,6 +788,22 @@ class GameStateProvider extends ChangeNotifier {
     // Facility harvests
     _handleFacilityHarvests();
 
+    // Roll weekly random event if no high priority dialog is currently waiting
+    if (activeEventDialog == null && activeRecruitDialog == null && activeGraduationDialog == null) {
+      final rolledEvent = eventSystem.rollWeeklyEvent(
+        camp: camp,
+        month: month,
+        week: week,
+        rng: _gameRng,
+        cooldowns: eventCooldowns,
+      );
+      if (rolledEvent != null) {
+        activeEventDialog = rolledEvent;
+        eventCooldowns[rolledEvent.id] = rolledEvent.cooldownWeeks;
+        autoPause();
+      }
+    }
+
     if (fighter.academics < 80.0) {
       checkStoryTriggers('grade_warning');
     }
@@ -727,6 +816,99 @@ class GameStateProvider extends ChangeNotifier {
 
     notifyListeners();
     saveGame();
+  }
+
+  // --- PHASE 6 ACTIONS: EVENTS, RECRUITS & GRADUATION ---
+  void resolveEventChoice(EventChoice? choice) {
+    if (activeEventDialog == null) return;
+    final res = eventSystem.applyEventEffects(
+      event: activeEventDialog!,
+      camp: camp,
+      choice: choice,
+      rng: _gameRng,
+    );
+    pesos = camp.money;
+    prestige = camp.fame;
+    recentLog = res.logMessage;
+
+    if (res.hasWalkInRecruit && RecruitmentSystem.hasCapacity(camp)) {
+      activeRecruitDialog = RecruitmentSystem.generateCandidate(
+        rng: _gameRng,
+        year: year,
+        isScholarship: false,
+        maleFirstNames: DataLoader.maleNames,
+        femaleFirstNames: DataLoader.femaleNames,
+        lastNames: DataLoader.lastNames,
+        nicknames: DataLoader.nicknames,
+      );
+    } else if (res.hasFreeScholarRecruit && RecruitmentSystem.hasCapacity(camp)) {
+      activeRecruitDialog = RecruitmentSystem.generateCandidate(
+        rng: _gameRng,
+        year: year,
+        isScholarship: true,
+        maleFirstNames: DataLoader.maleNames,
+        femaleFirstNames: DataLoader.femaleNames,
+        lastNames: DataLoader.lastNames,
+        nicknames: DataLoader.nicknames,
+      );
+    }
+
+    activeEventDialog = null;
+    notifyListeners();
+    saveGame();
+  }
+
+  void enrollRecruitCandidate() {
+    if (activeRecruitDialog == null) return;
+    final cand = activeRecruitDialog!;
+    final success = RecruitmentSystem.enrollCandidate(
+      camp: camp,
+      candidate: cand,
+    );
+    if (success) {
+      pesos = camp.money;
+      recentLog = '[RECRUIT] Pormal nang sumapi si ${cand.student.name} sa bakuran!';
+    } else {
+      recentLog = '[RECRUIT] Hindi nakapasok ang recruit (kulang ang pondo o espasyo).';
+    }
+    activeRecruitDialog = null;
+    notifyListeners();
+    saveGame();
+  }
+
+  void declineRecruitCandidate() {
+    activeRecruitDialog = null;
+    recentLog = '[TANGGI] Hindi tinanggap ang aplikasyon ng recruit.';
+    notifyListeners();
+  }
+
+  void resolveGraduationRole(AlumniRole role) {
+    if (activeGraduationDialog == null) return;
+    final candidate = activeGraduationDialog!;
+    final alumnus = GraduationSystem.graduate(
+      camp: camp,
+      student: candidate.student,
+      role: role,
+      year: year,
+      month: month,
+    );
+    pesos = camp.money;
+    prestige = camp.fame;
+    recentLog = '[PAMANA] Nagtapos na si ${alumnus.name}! Naging ${alumnus.role.name.toUpperCase()} ng bakuran.';
+    activeGraduationDialog = null;
+
+    // Check if other candidates are waiting
+    final remaining = GraduationSystem.checkGraduationCandidates(camp);
+    if (remaining.isNotEmpty) {
+      activeGraduationDialog = remaining.first;
+    }
+    notifyListeners();
+    saveGame();
+  }
+
+  void dismissGraduationDialog() {
+    activeGraduationDialog = null;
+    notifyListeners();
   }
 
   void _handleFacilityHarvests() {
@@ -1276,6 +1458,7 @@ class GameStateProvider extends ChangeNotifier {
       'inventory': inventory.map((it) => it.toJson()).toList(),
       'activeBuffs': activeBuffs.map((b) => b.toJson()).toList(),
       'opponentRecords': opponentRecords.map((k, v) => MapEntry(k, v.toJson())),
+      'eventCooldowns': eventCooldowns,
       'bgmVolume': bgmVolume,
       'sfxVolume': sfxVolume,
     };
@@ -1378,6 +1561,14 @@ class GameStateProvider extends ChangeNotifier {
         opponentRecords = rawRecords.map(
           (k, v) => MapEntry(k, OpponentRecord.fromJson(v as Map<String, dynamic>)),
         );
+      }
+
+      final rawCooldowns = data['eventCooldowns'] as Map<String, dynamic>?;
+      eventCooldowns.clear();
+      if (rawCooldowns != null) {
+        rawCooldowns.forEach((k, v) {
+          if (v is int) eventCooldowns[k] = v;
+        });
       }
 
       bgmVolume = (data['bgmVolume'] as num?)?.toDouble() ?? 0.8;

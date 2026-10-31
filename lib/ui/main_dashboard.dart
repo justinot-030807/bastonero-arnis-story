@@ -19,6 +19,10 @@ import 'overlays/tournament_bracket_modal.dart';
 import 'overlays/experts_analysis_modal.dart';
 import 'overlays/gym_builder_modal.dart';
 import 'overlays/monthly_summary_modal.dart';
+import 'overlays/event_dialog_modal.dart';
+import 'overlays/recruit_dialog_modal.dart';
+import 'overlays/graduation_modal.dart';
+import '../domain/systems/recruitment_system.dart';
 import 'overlays/story_dialog_modal.dart';
 import 'overlays/tiangge_modal.dart';
 
@@ -378,6 +382,39 @@ class _MainDashboardState extends State<MainDashboard> {
                   child: MonthlySummaryModal(
                     ledger: gameState.lastMonthlyLedger!,
                     onDismiss: gameState.dismissMonthlySummary,
+                  ),
+                ),
+
+              // RANDOM EVENT MODAL
+              if (gameState.activeEventDialog != null)
+                Container(
+                  color: Colors.black.withValues(alpha: 0.8),
+                  child: EventDialogModal(
+                    event: gameState.activeEventDialog!,
+                    onResolve: gameState.resolveEventChoice,
+                  ),
+                ),
+
+              // WALK-IN / SCHOLARSHIP RECRUIT MODAL
+              if (gameState.activeRecruitDialog != null)
+                Container(
+                  color: Colors.black.withValues(alpha: 0.8),
+                  child: RecruitDialogModal(
+                    candidate: gameState.activeRecruitDialog!,
+                    canAfford: gameState.pesos >= gameState.activeRecruitDialog!.fee,
+                    hasSpace: RecruitmentSystem.hasCapacity(gameState.camp),
+                    onAccept: gameState.enrollRecruitCandidate,
+                    onDecline: gameState.declineRecruitCandidate,
+                  ),
+                ),
+
+              // GRADUATION / ALUMNI SELECTION MODAL
+              if (gameState.activeGraduationDialog != null)
+                Container(
+                  color: Colors.black.withValues(alpha: 0.8),
+                  child: GraduationModal(
+                    candidate: gameState.activeGraduationDialog!,
+                    onChooseRole: gameState.resolveGraduationRole,
                   ),
                 ),
             ],

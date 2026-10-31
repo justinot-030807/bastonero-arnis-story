@@ -3,46 +3,92 @@
     "id": "bagyo",
     "title": "Malakas na Bagyo",
     "tag": "negative",
-    "text": "Bumuhos ang malakas na bagyo sa inyong lugar! Napinsala ang bakuran at kailangang ayusin.",
+    "text": "Bumuhos ang malakas na bagyo sa inyong lugar! Napinsala ang bakuran at may nasirang kagamitan.",
+    "triggerMonth": 7,
+    "cooldownWeeks": 16,
     "effects": {
       "trainingBlocked": true,
       "costBase": 400
-    }
+    },
+    "choices": [
+      {
+        "id": "repair_all",
+        "label": "Mag-repair Agad (Bayaran ang pinsala)",
+        "effectDescription": "Gastusin ang halaga para maayos agad ang bakuran.",
+        "effects": {
+          "repairDeduction": true
+        }
+      },
+      {
+        "id": "diy_repair",
+        "label": "Tulong-tulong na Magkumpuni",
+        "effectDescription": "Makatipid sa pera pero tataas ang pagod ng lahat.",
+        "effects": {
+          "fatigueAll": 20,
+          "costBase": 150
+        }
+      }
+    ]
   },
   {
     "id": "pista_barangay",
     "title": "Pista ng Barangay",
     "tag": "positive",
-    "text": "Masayang nagdiwang ang barangay! Nagtanghal ang inyong kampo ng Anyo exhibition.",
+    "text": "Masayang nagdiwang ang barangay! Nagtanghal ang inyong kampo ng kahanga-hangang Anyo exhibition.",
+    "cooldownWeeks": 12,
     "effects": {
       "fameGain": 40,
-      "walkInRecruitBonus": 1
+      "walkInRecruitBonus": 1,
+      "moraleGain": 10
     }
   },
   {
     "id": "lolo_grandmaster",
     "title": "Dumalaw si Lolo Grandmaster",
     "tag": "positive",
-    "text": "Isang beteranong arnisador ang bumisita sa inyong bakuran at nagturo ng lihim na anggulo.",
+    "text": "Isang beteranong arnisador ang bumisita sa inyong bakuran at nagturo ng lihim na anggulo ng pagbira.",
+    "cooldownWeeks": 16,
     "effects": {
       "learnMoveChance": 0.8,
-      "diskarteGain": 5.0
+      "diskarteGain": 5.0,
+      "moraleGain": 15
     }
   },
   {
     "id": "hamon_karibal",
-    "title": "Hamon ng Karibal",
+    "title": "Hamon ng Karibal na Gym",
     "tag": "neutral",
-    "text": "Pumunta ang karibal na gym para sa isang paligsahan sa sparring!",
+    "text": "Pumunta ang karibal na gym para sa isang paligsahan sa sparring sa inyong banig!",
+    "cooldownWeeks": 10,
     "effects": {
       "sparChallenge": true
-    }
+    },
+    "choices": [
+      {
+        "id": "accept_spar",
+        "label": "Tanggapin ang Hamon!",
+        "effectDescription": "Magka-alaman sa banig! +35 Fame kapag nanalo.",
+        "effects": {
+          "fameGain": 35,
+          "fatigueAll": 10
+        }
+      },
+      {
+        "id": "decline_spar",
+        "label": "Magalang na Tanggihan",
+        "effectDescription": "Magpokus muna sa sariling iskedyul ng ensayo.",
+        "effects": {
+          "moraleGain": -2
+        }
+      }
+    ]
   },
   {
     "id": "brownout",
     "title": "Brownout sa Purok",
     "tag": "negative",
-    "text": "Nawalan ng kuryente dahil sa natumbang poste. Mainit at bagsak ang gana ng mga mag-aaral.",
+    "text": "Nawalan ng kuryente dahil sa natumbang poste. Mainit at bagsak ang gana ng mga nag-eensayo.",
+    "cooldownWeeks": 8,
     "effects": {
       "moralePenalty": 5
     }
@@ -51,43 +97,91 @@
     "id": "magulang_reklamo",
     "title": "Magulang na Nagrereklamo",
     "tag": "negative",
-    "text": "Nag-aalala ang magulang dahil bumababa ang marka sa eskwela ng kanilang anak.",
+    "text": "Nag-aalala ang magulang dahil bumababa ang marka sa eskwela ng kanilang anak habang nag-aarnis.",
+    "condition": "has_failing_student",
+    "cooldownWeeks": 8,
     "effects": {
       "gradeWarning": true
-    }
+    },
+    "choices": [
+      {
+        "id": "prioritize_study",
+        "label": "Mag-utos ng Tutorial Session",
+        "effectDescription": "Maglaan ng oras sa Aral para tumaas ang grades.",
+        "effects": {
+          "gradeBoostAll": 5.0,
+          "costBase": 100
+        }
+      },
+      {
+        "id": "assure_parent",
+        "label": "Pangakuang Babantayan ang Grado",
+        "effectDescription": "Pakiusapan ang magulang na manatili ang tiwala.",
+        "effects": {
+          "moraleGain": -5
+        }
+      }
+    ]
   },
   {
     "id": "sponsor_visit",
     "title": "Sponsor na Dumalaw",
     "tag": "positive",
-    "text": "Isang lokal na negosyante ang humanga sa dedikasyon ng inyong kampo at nagbigay ng tulong.",
+    "text": "Isang lokal na negosyante ang humanga sa dedikasyon ng inyong kampo at nag-alok ng tulong pinansyal.",
+    "cooldownWeeks": 14,
     "effects": {
-      "moneyGain": 1500
-    }
+      "moneyGain": 1500,
+      "fameGain": 15
+    },
+    "choices": [
+      {
+        "id": "take_cash",
+        "label": "Tanggapin ang P1,500 Donasyon",
+        "effectDescription": "Diretsong idadagdag sa pondo ng bakuran.",
+        "effects": {
+          "moneyGain": 1500
+        }
+      },
+      {
+        "id": "request_gear",
+        "label": "Humingi ng Kagamitang Pang-ensayo",
+        "effectDescription": "Tumanggap ng bagong set ng baston at proteksyon.",
+        "effects": {
+          "fameGain": 30,
+          "moraleGain": 10
+        }
+      }
+    ]
   },
   {
     "id": "sakit_flu",
     "title": "Trankaso sa Camp",
     "tag": "negative",
     "text": "Inubo at nilagnat ang ilang estudyante dahil sa pabago-bagong panahon.",
+    "cooldownWeeks": 12,
     "effects": {
-      "studentsRestWeeks": 1
+      "studentsRestWeeks": 1,
+      "moraleGain": -5
     }
   },
   {
     "id": "pasko",
     "title": "Pasko sa Bakuran",
     "tag": "positive",
-    "text": "Puno ng parol at tawanan ang inyong bakuran! Sama-samang nagsalu-salo ng bibingka.",
+    "text": "Puno ng parol at tawanan ang inyong bakuran! Sama-samang nagsalu-salo ng bibingka at puto bumbong.",
+    "triggerMonth": 12,
+    "cooldownWeeks": 24,
     "effects": {
-      "moraleGain": 10
+      "moraleGain": 15,
+      "moneyGain": 500
     }
   },
   {
     "id": "scholarship_offer",
     "title": "Scholarship Offer",
     "tag": "positive",
-    "text": "Dahil sa magandang standing sa Varsity, may bagong scholar na handang sumapi!",
+    "text": "Dahil sa magandang reputasyon sa Palarong Paaralan, may mataas na potensyal na scholar na nais mag-aral sa inyo!",
+    "cooldownWeeks": 16,
     "effects": {
       "freeHighPotentialRecruit": true
     }
@@ -96,10 +190,13 @@
     "id": "alumni_returns",
     "title": "Pagbabalik ng Alumnus",
     "tag": "positive",
-    "text": "Bumalik ang dati mong kampeon upang magbigay ng payo at donasyon sa bagong henerasyon.",
+    "text": "Bumalik ang dati mong kampeon upang magbigay ng payo, mag-donate, at magpalakas ng loob ng mga bata.",
+    "condition": "has_alumni",
+    "cooldownWeeks": 10,
     "effects": {
       "moneyGain": 800,
-      "moraleGain": 5
+      "moraleGain": 10,
+      "diskarteGain": 2.0
     }
   },
   {
@@ -107,8 +204,154 @@
     "title": "Na-flat ang Gulong ng Tricycle",
     "tag": "neutral",
     "text": "Na-flat ang tricycle sa tapat ng inyong bakuran. Tinulungan ng inyong mga arnisador ang driver magpalit ng gulong!",
+    "cooldownWeeks": 6,
     "effects": {
-      "fameGain": 5
+      "fameGain": 10,
+      "moraleGain": 3
+    }
+  },
+  {
+    "id": "manong_taho",
+    "title": "Mainit na Taho Treat",
+    "tag": "positive",
+    "text": "Huminto si Manong Magtataho sa labas ng bakuran. Masayang nagmeryenda ang buong koponan!",
+    "cooldownWeeks": 6,
+    "effects": {
+      "moraleGain": 8,
+      "fatigueRelief": 15
+    }
+  },
+  {
+    "id": "isaw_blowout",
+    "title": "Tusok-Tusok Blowout",
+    "tag": "neutral",
+    "text": "Nagsalo-salo ang mga arnisador sa kanto para sa paboritong isaw at kwek-kwek pagkatapos ng laban.",
+    "cooldownWeeks": 6,
+    "effects": {
+      "moraleGain": 6,
+      "costBase": 120
+    }
+  },
+  {
+    "id": "baston_sale",
+    "title": "Bagsak Presyo sa Tiangge",
+    "tag": "positive",
+    "text": "May bagong dating na shipment ng de-kalidad na bahi at kamagong sa tiangge sa mababang halaga!",
+    "cooldownWeeks": 10,
+    "effects": {
+      "fameGain": 5,
+      "diskarteGain": 2.5
+    }
+  },
+  {
+    "id": "tag_araw_heat",
+    "title": "Matinding Init ng Tag-araw",
+    "tag": "negative",
+    "text": "Napakainit ng panahon! Tagaktak ang pawis at mas mabilis mapagod ang mga atleta sa bakuran.",
+    "triggerMonth": 4,
+    "cooldownWeeks": 12,
+    "effects": {
+      "fatigueAll": 15,
+      "moralePenalty": 4
+    }
+  },
+  {
+    "id": "deped_visit",
+    "title": "Pagbisita ng DepEd Supervisor",
+    "tag": "positive",
+    "text": "Bumisita ang kinatawan ng DepEd upang purihin ang disiplina at akademikong pagsusumikap ng inyong mga atleta.",
+    "cooldownWeeks": 14,
+    "effects": {
+      "fameGain": 25,
+      "gradeBoostAll": 2.0
+    }
+  },
+  {
+    "id": "paliga_purok",
+    "title": "Exhibition sa Paliga ng Purok",
+    "tag": "positive",
+    "text": "Inimbitahan ang inyong koponan na magtanghal ng Solo at Doble Baston Anyo bago ang liga sa barangay.",
+    "cooldownWeeks": 8,
+    "effects": {
+      "fameGain": 30,
+      "walkInRecruitBonus": 1
+    }
+  },
+  {
+    "id": "alagang_aso",
+    "title": "Makulit na Aso sa Court",
+    "tag": "neutral",
+    "text": "Isang makulit na tuta ang pumasok sa bakuran at tinangay ang isang padded stick! Nagtawanan ang lahat habang hinahabol ito.",
+    "cooldownWeeks": 6,
+    "effects": {
+      "moraleGain": 6
+    }
+  },
+  {
+    "id": "regalo_alkalde",
+    "title": "Suporta mula sa Tanggapan ng Alkalde",
+    "tag": "positive",
+    "text": "Dahil sa inyong mga parangal sa arnis, nagkaloob ang alkalde ng pondo para sa kagamitan at transportasyon.",
+    "cooldownWeeks": 18,
+    "effects": {
+      "moneyGain": 2500,
+      "fameGain": 20
+    }
+  },
+  {
+    "id": "panauhing_guro",
+    "title": "Seminar ng Katutubong Eskrima",
+    "tag": "positive",
+    "text": "Isang kilalang guro mula sa Visayas ang nagdaos ng 1-araw na clinic sa inyong bakuran ukol sa Espada y Daga.",
+    "cooldownWeeks": 16,
+    "effects": {
+      "diskarteGain": 4.0,
+      "salagGain": 3.0,
+      "moraleGain": 10
+    }
+  },
+  {
+    "id": "lumang_larawan",
+    "title": "Lumang Larawan sa Dingding",
+    "tag": "positive",
+    "text": "Nahanap sa bodega ang larawan ng mga unang mandirigma ng inyong pamilya. Nagsilbing inspirasyon ito sa lahat.",
+    "cooldownWeeks": 12,
+    "effects": {
+      "moraleGain": 12,
+      "fameGain": 10
+    }
+  },
+  {
+    "id": "ulan_sa_bubong",
+    "title": "Payapang Ambon sa Bakuran",
+    "tag": "neutral",
+    "text": "Tahimik na pumapatak ang ambon sa bubong habang nagre-review at nagpapahinga ang mga bata.",
+    "cooldownWeeks": 6,
+    "effects": {
+      "moraleGain": 5,
+      "fatigueRelief": 10
+    }
+  },
+  {
+    "id": "baha_sa_kalsada",
+    "title": "Baha sa Harap ng Bakuran",
+    "tag": "negative",
+    "text": "Umapaw ang kanal sa kalsada! Naantala ang pagdating ng mga estudyante at kinailangang maglinis.",
+    "cooldownWeeks": 10,
+    "effects": {
+      "moralePenalty": 4,
+      "fatigueAll": 8
+    }
+  },
+  {
+    "id": "sorbetes_treat",
+    "title": "Dirty Ice Cream ni Mamang Sorbetero",
+    "tag": "positive",
+    "text": "Tumunog ang kampanilya ng sorbetero! Ube at keso flavor ang nagpalimot sa init ng hapon.",
+    "cooldownWeeks": 6,
+    "effects": {
+      "moraleGain": 7,
+      "fatigueRelief": 8
     }
   }
 ]

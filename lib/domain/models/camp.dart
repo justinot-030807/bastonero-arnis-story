@@ -1,9 +1,11 @@
 // lib/domain/models/camp.dart
 // Pure Dart model for the Camp (Bakuran / Academy).
 
+import 'dart:math';
 import '../balance.dart';
 import '../rng.dart';
 import '../systems/data_loader.dart';
+import 'alumni.dart';
 import 'equipment.dart';
 import 'focus_tap.dart';
 import 'student.dart';
@@ -18,6 +20,7 @@ class Camp {
   List<PlacedEquipment> placements;
   List<Student> students;
   List<Trainer> trainers;
+  List<Alumnus> alumni;
   List<String> unlockedTournaments;
   Map<String, dynamic> flags;
 
@@ -30,6 +33,7 @@ class Camp {
     List<PlacedEquipment>? placements,
     List<Student>? students,
     List<Trainer>? trainers,
+    List<Alumnus>? alumni,
     List<String>? unlockedTournaments,
     Map<String, dynamic>? flags,
   })  : placements = placements ?? [],
@@ -37,6 +41,7 @@ class Camp {
             ? students
             : createDefaultStarterStudents(),
         trainers = trainers ?? [],
+        alumni = alumni ?? [],
         unlockedTournaments = unlockedTournaments ?? ['inter_purok', 'school_intrams'],
         flags = flags ?? {};
 
@@ -102,13 +107,85 @@ class Camp {
     ];
   }
 
-  int get maxStudents => 4 + (floors * 4);
+  int get maxStudents {
+    final benchesAndMats = placements.where((p) => p.equipmentId == 'bangko' || p.equipmentId == 'banig').length;
+    return min(24, 4 + (floors * 4) + (2 * benchesAndMats));
+  }
 
   int lastWeeklyTuitionEarned = 0;
   int lastWeeklyPassiveEarned = 0;
 
   int get monthlyUpkeep => Balance.monthlyBaseUpkeep + (floors * Balance.monthlyUpkeepPerFloor);
   int get monthlyTrainerSalaries => trainers.fold<int>(0, (sum, t) => sum + t.salary);
+  int get monthlyAlumniSponsorships => alumni
+      .where((a) => a.role == AlumniRole.sponsor)
+      .fold<int>(0, (sum, a) => sum + a.monthlySponsorship);
+
+  /// Graduates a student and sets their legacy role (Guro/Trainer, Sponsor, or Hall of Fame).
+  Alumnus graduateStudent({
+    required Student student,
+    required AlumniRole role,
+    required int year,
+    required int month,
+  }) {
+    student.status = StudentStatus.graduated;
+
+    // Determine highest stat
+    String specialty = 'lakas';
+    double highest = student.lakas;
+    if (student.bilis > highest) {
+      highest = student.bilis;
+      specialty = 'bilis';
+    }
+    if (student.diskarte > highest) {
+      highest = student.diskarte;
+      specialty = 'diskarte';
+    }
+    if (student.salag > highest) {
+      highest = student.salag;
+      specialty = 'salag';
+    }
+
+    final trainerSkill = (highest / 40.0).clamp(1, 5).toInt();
+    final sponsorshipPesos = 100 + (student.titles.length * 150);
+
+    if (role == AlumniRole.trainer) {
+      // Add as Guro trainer
+      final trainerId = 'guro_${student.id}_${DateTime.now().millisecondsSinceEpoch}';
+      trainers.add(Trainer(
+        id: trainerId,
+        name: 'Guro ${student.name}',
+        specialty: specialty,
+        skill: trainerSkill,
+        salary: 300, // Alumni trainers receive discounted salary
+      ));
+    } else if (role == AlumniRole.hallOfFame) {
+      fame += 50;
+    }
+
+    final alumnus = Alumnus(
+      id: 'alm_${student.id}',
+      studentId: student.id,
+      name: student.name,
+      nickname: student.nickname,
+      graduatedYear: year,
+      graduatedMonth: month,
+      titles: List<String>.from(student.titles),
+      wins: student.wins,
+      losses: student.losses,
+      lakas: student.lakas,
+      bilis: student.bilis,
+      diskarte: student.diskarte,
+      salag: student.salag,
+      role: role,
+      monthlySponsorship: role == AlumniRole.sponsor ? sponsorshipPesos : 0,
+      trainerSpecialty: specialty,
+      trainerSkill: trainerSkill,
+    );
+
+    alumni.add(alumnus);
+    return alumnus;
+  }
 
   /// Expansion cost for next floor (2F: 1800, 3F: 6000, 4F: 15000, 5F: 35000).
   int? get nextFloorCost => Balance.floorCosts[floors + 1];
@@ -322,6 +399,7 @@ class Camp {
         'placements': placements.map((p) => p.toJson()).toList(),
         'students': students.map((s) => s.toJson()).toList(),
         'trainers': trainers.map((t) => t.toJson()).toList(),
+        'alumni': alumni.map((a) => a.toJson()).toList(),
         'unlockedTournaments': unlockedTournaments,
         'flags': flags,
       };
@@ -340,6 +418,9 @@ class Camp {
             .toList(),
         trainers: (json['trainers'] as List<dynamic>?)
             ?.map((e) => Trainer.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        alumni: (json['alumni'] as List<dynamic>?)
+            ?.map((e) => Alumnus.fromJson(e as Map<String, dynamic>))
             .toList(),
         unlockedTournaments: (json['unlockedTournaments'] as List<dynamic>?)
             ?.map((e) => e.toString())

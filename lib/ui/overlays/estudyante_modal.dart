@@ -2,6 +2,7 @@
 // Student roster management, individual & batch activity scheduling, detail attributes, and Focus Tap.
 
 import 'package:flutter/material.dart';
+import '../../domain/models/alumni.dart';
 import '../../domain/models/student.dart';
 import '../../providers/game_state_provider.dart';
 import '../retro_ui.dart';
@@ -24,6 +25,7 @@ class EstudyanteModal extends StatefulWidget {
 
 class _EstudyanteModalState extends State<EstudyanteModal> {
   Student? _detailStudent;
+  int _selectedTab = 0; // 0 = Aktibo, 1 = Alumni at Guro
 
   @override
   void initState() {
@@ -41,7 +43,9 @@ class _EstudyanteModalState extends State<EstudyanteModal> {
         height: MediaQuery.of(context).size.height * 0.90,
         title: _detailStudent != null
             ? 'DETALYE NG ESTUDYANTE'
-            : 'MGA ESTUDYANTE NG KAMPO (${state.students.length}/${state.camp.maxStudents})',
+            : (_selectedTab == 0
+                ? 'MGA ESTUDYANTE NG KAMPO (${state.students.length}/${state.camp.maxStudents})'
+                : 'MGA ALUMNI AT GURO (${state.camp.alumni.length + state.camp.trainers.length})'),
         titleTrailing: IconButton(
           icon: const Icon(Icons.close, color: Colors.white, size: 18),
           onPressed: () => Navigator.of(context).pop(),
@@ -51,7 +55,44 @@ class _EstudyanteModalState extends State<EstudyanteModal> {
         backgroundColor: RetroColors.deepBackground,
         child: _detailStudent != null
             ? _buildDetailView(state, _detailStudent!)
-            : _buildRosterListView(state),
+            : Column(
+                children: [
+                  // Tab selector buttons
+                  Row(
+                    children: [
+                      Expanded(
+                        child: RetroButton(
+                          height: 32,
+                          color: _selectedTab == 0 ? const Color(0xFFE6482E) : const Color(0xFF334155),
+                          onTap: () => setState(() => _selectedTab = 0),
+                          child: Text(
+                            'AKTIBO (${state.students.length}/${state.camp.maxStudents})',
+                            style: const TextStyle(color: Colors.white, fontSize: 8.5, fontFamily: 'monospace', fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: RetroButton(
+                          height: 32,
+                          color: _selectedTab == 1 ? const Color(0xFF0284C7) : const Color(0xFF334155),
+                          onTap: () => setState(() => _selectedTab = 1),
+                          child: Text(
+                            'ALUMNI & GURO (${state.camp.alumni.length})',
+                            style: const TextStyle(color: Colors.white, fontSize: 8.5, fontFamily: 'monospace', fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: _selectedTab == 0
+                        ? _buildRosterListView(state)
+                        : _buildAlumniAndGuroView(state),
+                  ),
+                ],
+              ),
       ),
     );
   }
@@ -493,6 +534,176 @@ class _EstudyanteModalState extends State<EstudyanteModal> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildAlumniAndGuroView(GameStateProvider state) {
+    final alumni = state.camp.alumni;
+    final trainers = state.camp.trainers;
+
+    return ListView(
+      children: [
+        // GURO TRAINERS SECTION
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E293B),
+            border: Border.all(color: const Color(0xFF0284C7)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'MGA GURO AT TRAINER',
+                    style: TextStyle(color: Color(0xFF38BDF8), fontSize: 9, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+                  ),
+                  Text(
+                    '${trainers.length} Aktibo',
+                    style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 8, fontFamily: 'monospace'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              if (trainers.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 6.0),
+                  child: Text(
+                    'Wala pang karagdagang guro. Ang mga nagtatapos na estudyante ay maaaring maging guro ng kampo.',
+                    style: TextStyle(color: Color(0xFF64748B), fontSize: 8, fontFamily: 'monospace', fontStyle: FontStyle.italic),
+                  ),
+                )
+              else
+                ...trainers.map((t) {
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 4),
+                    padding: const EdgeInsets.all(6),
+                    color: const Color(0xFF0F172A),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              t.name,
+                              style: const TextStyle(color: Colors.white, fontSize: 8.5, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+                            ),
+                            Text(
+                              'Espesyalista: ${t.specialty.toUpperCase()} (+${t.skill * 4}% bilis ng ensayo)',
+                              style: const TextStyle(color: Color(0xFFFDE047), fontSize: 7.5, fontFamily: 'monospace'),
+                            ),
+                          ],
+                        ),
+                        Text(
+                          'P${t.salary}/buwan',
+                          style: const TextStyle(color: Color(0xFFF87171), fontSize: 8, fontFamily: 'monospace'),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+
+        // ALUMNI SECTION
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E293B),
+            border: Border.all(color: const Color(0xFFF4B41B)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'MGA ALUMNI NG BAKURAN (PAMANA)',
+                    style: TextStyle(color: Color(0xFFFDE047), fontSize: 9, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+                  ),
+                  Text(
+                    '${alumni.length} Nagtapos',
+                    style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 8, fontFamily: 'monospace'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              if (alumni.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 10.0),
+                  child: Text(
+                    'Wala pang nagtatapos na estudyante.\nSa pagtatapos ng Grade 12 o pagsapit ng edad 18, maaari silang pumili ng pamana: maging Guro, maging Sponsor, o ilagay sa Hall of Fame!',
+                    style: TextStyle(color: Color(0xFF64748B), fontSize: 8, fontFamily: 'monospace', fontStyle: FontStyle.italic),
+                  ),
+                )
+              else
+                ...alumni.map((a) {
+                  String roleLabel = '';
+                  Color roleColor = Colors.white;
+                  if (a.role == AlumniRole.trainer) {
+                    roleLabel = '[GURO TRAINER]';
+                    roleColor = const Color(0xFF38BDF8);
+                  } else if (a.role == AlumniRole.sponsor) {
+                    roleLabel = '[SPONSOR +P${a.monthlySponsorship}/mo]';
+                    roleColor = const Color(0xFF4ADE80);
+                  } else {
+                    roleLabel = '[HALL OF FAME]';
+                    roleColor = const Color(0xFFC084FC);
+                  }
+
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 6),
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0F172A),
+                      border: Border.all(color: const Color(0xFF334155)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              '${a.name} "${a.nickname}"',
+                              style: const TextStyle(color: Colors.white, fontSize: 8.5, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                              color: roleColor.withValues(alpha: 0.2),
+                              child: Text(
+                                roleLabel,
+                                style: TextStyle(color: roleColor, fontSize: 7, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Nagtapos: Taon ${a.graduatedYear} Buwan ${a.graduatedMonth} | Stats: ${a.totalStats.toStringAsFixed(1)} | Rekord: ${a.wins}W - ${a.losses}L',
+                          style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 7.5, fontFamily: 'monospace'),
+                        ),
+                        if (a.titles.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            'Mga Titulo: ${a.titles.join(", ")}',
+                            style: const TextStyle(color: Color(0xFFFDE047), fontSize: 7, fontFamily: 'monospace'),
+                          ),
+                        ],
+                      ],
+                    ),
+                  );
+                }),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
